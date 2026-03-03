@@ -1,0 +1,15 @@
+export const DEFAULT_STAPLES = [
+  { name: 'Aceite de oliva virgen extra', category: 'aceites' as const, avg_restock_days: 30 },
+  { name: 'Vinagre de vino', category: 'aceites' as const, avg_restock_days: 90 },
+  { name: 'Sal', category: 'condimentos' as const, avg_restock_days: 90 },
+  { name: 'Pimienta negra', category: 'condimentos' as const, avg_restock_days: 90 },
+  { name: 'Pimentón', category: 'condimentos' as const, avg_restock_days: 90 },
+  { name: 'Orégano', category: 'condimentos' as const, avg_restock_days: 90 },
+  { name: 'Ajo', category: 'frescos' as const, avg_restock_days: 7 },
+  { name: 'Cebolla', category: 'frescos' as const, avg_restock_days: 7 },
+  { name: 'Huevos', category: 'frescos' as const, avg_restock_days: 10 },
+  { name: 'Arroz', category: 'despensa' as const, avg_restock_days: 30 },
+  { name: 'Pasta', category: 'despensa' as const, avg_restock_days: 30 },
+  { name: 'Tomate frito', category: 'despensa' as const, avg_restock_days: 21 },
+  { name: 'Salsa de soja', category: 'salsas' as const, avg_restock_days: 60 },
+];
