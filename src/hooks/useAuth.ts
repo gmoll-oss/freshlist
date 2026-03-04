@@ -1,17 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 import * as AuthSession from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
-import type { User, Session } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
+import React from 'react';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const redirectUri = AuthSession.makeRedirectUri();
 
-export function useAuth() {
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  skipped: boolean;
+  signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  skipAuth: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [skipped, setSkipped] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -31,11 +46,9 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  function skipAuth() {
-    setSkipped(true);
-  }
+  const skipAuth = useCallback(() => setSkipped(true), []);
 
-  async function signInWithGoogle() {
+  const signInWithGoogle = useCallback(async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -49,7 +62,6 @@ export function useAuth() {
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
       if (result.type === 'success' && result.url) {
         const url = new URL(result.url);
-        // Extract tokens from URL fragment or query params
         const params = new URLSearchParams(
           url.hash ? url.hash.substring(1) : url.search.substring(1),
         );
@@ -63,9 +75,9 @@ export function useAuth() {
         }
       }
     }
-  }
+  }, []);
 
-  async function signInWithApple() {
+  const signInWithApple = useCallback(async () => {
     if (Platform.OS !== 'ios') return;
 
     const rawNonce = Crypto.randomUUID();
@@ -93,24 +105,28 @@ export function useAuth() {
     });
 
     if (error) throw error;
-  }
+  }, []);
 
-  async function signInWithEmail(email: string, password: string) {
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-  }
+  }, []);
 
-  async function signUpWithEmail(email: string, password: string) {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
-  }
-
-  async function signOut() {
+  const signOut = useCallback(async () => {
     setSkipped(false);
     await supabase.auth.signOut();
-  }
+  }, []);
 
   const isAuthenticated = !!user || skipped;
 
-  return { user, loading, isAuthenticated, skipped, signInWithGoogle, signInWithApple, signInWithEmail, signUpWithEmail, signOut, skipAuth };
+  return React.createElement(AuthContext.Provider, {
+    value: { user, loading, isAuthenticated, skipped, signInWithGoogle, signInWithApple, signInWithEmail, signOut, skipAuth },
+    children,
+  });
+}
+
+export function useAuth(): AuthContextType {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }

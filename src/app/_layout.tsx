@@ -1,15 +1,66 @@
-import { Stack } from 'expo-router';
+import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_700Bold, DMSans_900Black } from '@expo-google-fonts/dm-sans';
 import { View, ActivityIndicator } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
 import { colors } from '../constants/theme';
-import { useAuth } from '../hooks/useAuth';
+import { AuthProvider, useAuth } from '../hooks/useAuth';
+import { fetchPreferences } from '../services/supabase/preferences';
 
-export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_700Bold, DMSans_900Black });
-  const { isAuthenticated, loading } = useAuth();
+function AuthGate() {
+  const { isAuthenticated, loading, skipped } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+  const checkedRef = useRef(false);
 
-  if (!fontsLoaded || loading) {
+  useEffect(() => {
+    if (loading) return;
+
+    const onLogin = segments[0] === 'login';
+    const onOnboarding = segments[0] === 'onboarding';
+
+    if (!isAuthenticated && !onLogin) {
+      router.replace('/login');
+      setReady(true);
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setReady(true);
+      return;
+    }
+
+    // Skip auth: go straight to tabs
+    if (skipped) {
+      if (onLogin) router.replace('/(tabs)');
+      setReady(true);
+      return;
+    }
+
+    // Already checked onboarding — don't re-check on every segment change
+    if (checkedRef.current) {
+      setReady(true);
+      return;
+    }
+
+    // Authenticated user — check onboarding status once
+    checkedRef.current = true;
+    fetchPreferences()
+      .then((prefs) => {
+        if (prefs?.onboarding_done) {
+          if (onLogin || onOnboarding) router.replace('/(tabs)');
+        } else {
+          if (!onOnboarding) router.replace('/onboarding');
+        }
+      })
+      .catch(() => {
+        if (!onOnboarding) router.replace('/onboarding');
+      })
+      .finally(() => setReady(true));
+  }, [isAuthenticated, loading, segments]);
+
+  if (loading || !ready) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg }}>
         <ActivityIndicator size="large" color={colors.green600} />
@@ -20,20 +71,25 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-        {!isAuthenticated ? (
-          <Stack.Screen name="login" />
-        ) : (
-          <>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="pantry" />
-            <Stack.Screen name="plan" />
-            <Stack.Screen name="products" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="cook/[id]" options={{ presentation: 'fullScreenModal' }} />
-          </>
-        )}
-      </Stack>
+      <Slot />
     </>
+  );
+}
+
+export default function RootLayout() {
+  const [fontsLoaded] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_700Bold, DMSans_900Black });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg }}>
+        <ActivityIndicator size="large" color={colors.green600} />
+      </View>
+    );
+  }
+
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   );
 }

@@ -1,38 +1,14 @@
 import { askClaudeWithImage } from '../../lib/claude';
 import { PROMPTS } from '../../constants/prompts';
+import { callWithRetry, generateId } from './utils';
 import type {
   OCRProduct,
   OCRTicketResponse,
   OCRFridgeResponse,
+  RescanResponse,
   ScanResult,
   PantryItem,
 } from '../../types';
-
-function parseJSON<T>(raw: string): T {
-  // Strip markdown fences if Claude wraps the response
-  let cleaned = raw.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-  }
-  return JSON.parse(cleaned);
-}
-
-async function callWithRetry<T>(fn: () => Promise<string>): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const raw = await fn();
-      return parseJSON<T>(raw);
-    } catch (e) {
-      lastError = e;
-    }
-  }
-  throw lastError;
-}
-
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
 
 export function ocrProductToPantryItem(p: OCRProduct): PantryItem {
   const now = new Date();
@@ -74,6 +50,24 @@ export async function scanTicket(base64: string): Promise<ScanResult> {
     products: data.products.map(ocrProductToPantryItem),
     raw: data.products,
   };
+}
+
+export async function rescanFridge(
+  base64: string,
+  currentItems: PantryItem[],
+): Promise<RescanResponse> {
+  const itemsList = currentItems
+    .filter((i) => i.status === 'fresh' || i.status === 'expiring')
+    .map((i) => i.name)
+    .join(', ');
+
+  return callWithRetry<RescanResponse>(() =>
+    askClaudeWithImage({
+      system: PROMPTS.RESCAN_FRIDGE,
+      prompt: `Productos actuales en mi inventario: ${itemsList}\n\nCompara con lo que ves en la foto.`,
+      imageBase64: base64,
+    }),
+  );
 }
 
 export async function scanFridge(base64: string): Promise<ScanResult> {

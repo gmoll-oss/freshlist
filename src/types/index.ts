@@ -12,13 +12,28 @@ export interface PantryItem {
 
 export interface MealPlan {
   id: string;
-  plan_date: string;
+  week_start: string;
+  day: string;
   meal_name: string;
   ingredients: { name: string; amount: string }[];
   steps: string[];
   prep_time_minutes: number;
   servings: number;
+  batch_note: string | null;
   cooked: boolean;
+}
+
+export interface MealPlanAIResponse {
+  meals: {
+    day: string;
+    meal_name: string;
+    ingredients: { name: string; amount: string }[];
+    steps: string[];
+    prep_time_minutes: number;
+    servings: number;
+    batch_note: string | null;
+  }[];
+  shopping_needed: { name: string; reason: string }[];
 }
 
 export interface ShoppingItem {
@@ -26,11 +41,20 @@ export interface ShoppingItem {
   name: string;
   category: string;
   quantity: number;
+  unit: string;
   source: 'manual' | 'voice' | 'ai_suggestion' | 'auto';
   purchased: boolean;
-  deal_price?: number;
-  regular_price?: number;
   store?: string;
+  meal_plan_id?: string;
+}
+
+export interface UserStats {
+  current_streak: number;
+  longest_streak: number;
+  total_saved_euros: number;
+  total_products_saved: number;
+  total_products_thrown: number;
+  total_recipes_cooked: number;
 }
 
 export interface UserStreak {
@@ -78,6 +102,25 @@ export interface OCRTicketResponse {
 
 export interface OCRFridgeResponse {
   products: OCRProduct[];
+}
+
+export interface UserPreferences {
+  display_name: string | null;
+  people_count: number;
+  meals_config: { breakfast: boolean; lunch: boolean; dinner: boolean };
+  weekly_meals: number;
+  diet_type: string[];
+  intolerances: string[];
+  cooking_time: 'rapido' | 'normal' | 'sin_prisa';
+  health_goal: string | null;
+  budget_weekly: number | null;
+  onboarding_done: boolean;
+}
+
+export interface RescanResponse {
+  still_present: string[];
+  consumed: string[];
+  new_items: OCRProduct[];
 }
 
 export type ScanStatus = 'idle' | 'capturing' | 'processing' | 'done' | 'error';

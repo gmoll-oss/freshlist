@@ -1,25 +1,53 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
 import { Trophy, CookingPot, Trash2, TrendingUp, Leaf, Star, Share2, Flame, Heart, ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
+import { fetchUserStats } from '../../services/supabase/stats';
+import type { UserStats } from '../../types';
 
 export default function StatsScreen() {
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUserStats()
+      .then(setStats)
+      .catch(() => setStats({
+        current_streak: 0,
+        longest_streak: 0,
+        total_saved_euros: 0,
+        total_products_saved: 0,
+        total_products_thrown: 0,
+        total_recipes_cooked: 0,
+      }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading || !stats) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={colors.green600} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false}>
         <View style={s.headerRow}>
           <Trophy size={15} color={colors.amber400} strokeWidth={2.2} />
-          <Text style={s.headerLabel}>RESUMEN SEMANAL</Text>
+          <Text style={s.headerLabel}>TUS LOGROS</Text>
         </View>
-        <Text style={s.title}>Tu semana en FreshList</Text>
+        <Text style={s.title}>Tu progreso en FreshList</Text>
 
         <View style={s.mainCard}>
           <View style={s.grid}>
             {[
-              { v: '5', l: 'Cenas cocinadas', fg: colors.green600, bg: colors.green50, Icon: CookingPot },
-              { v: '0', l: 'Productos tirados', fg: colors.green600, bg: colors.green50, Icon: Trash2 },
-              { v: '23€', l: 'Ahorrados', fg: colors.amber400, bg: '#FFFBEB', Icon: TrendingUp },
-              { v: '+40%', l: 'Más verdura', fg: colors.green600, bg: colors.green50, Icon: Leaf },
+              { v: String(stats.total_recipes_cooked), l: 'Cenas cocinadas', fg: colors.green600, bg: colors.green50, Icon: CookingPot },
+              { v: String(stats.total_products_thrown), l: 'Productos tirados', fg: stats.total_products_thrown === 0 ? colors.green600 : colors.red400, bg: stats.total_products_thrown === 0 ? colors.green50 : colors.red50, Icon: Trash2 },
+              { v: `${stats.total_saved_euros}€`, l: 'Ahorrados', fg: colors.amber400, bg: '#FFFBEB', Icon: TrendingUp },
+              { v: String(stats.total_products_saved), l: 'Productos usados', fg: colors.green600, bg: colors.green50, Icon: Leaf },
             ].map((s2, i) => (
               <View key={i} style={[s.statBox, { backgroundColor: s2.bg }]}>
                 <s2.Icon size={15} color={s2.fg} strokeWidth={2} />
@@ -29,21 +57,12 @@ export default function StatsScreen() {
             ))}
           </View>
 
-          {/* Favorite */}
-          <View style={s.favCard}>
-            <Star size={18} color={colors.amber400} strokeWidth={2.2} />
-            <View>
-              <Text style={s.favTitle}>Favorita de la semana</Text>
-              <Text style={s.favMeal}>Pollo Thai con Espinacas</Text>
-            </View>
-          </View>
-
           {/* Achievements */}
           <View style={s.achRow}>
             {[
-              { Icon: Flame, l: '14 días', bg: colors.orange50, fg: colors.orange500 },
-              { Icon: Leaf, l: 'Zero Waste', bg: colors.green50, fg: colors.green600 },
-              { Icon: Heart, l: '+Verdura', bg: colors.red50, fg: colors.red400 },
+              { Icon: Flame, l: `${stats.current_streak}d racha`, bg: colors.orange50, fg: colors.orange500 },
+              { Icon: Star, l: `Mejor: ${stats.longest_streak}d`, bg: colors.green50, fg: colors.green600 },
+              { Icon: Heart, l: `${stats.total_products_saved} salvados`, bg: colors.red50, fg: colors.red400 },
             ].map((a, i) => (
               <View key={i} style={[s.achBox, { backgroundColor: a.bg }]}>
                 <a.Icon size={18} color={a.fg} strokeWidth={2} />
@@ -84,9 +103,6 @@ const s = StyleSheet.create({
   statBox: { width: '47%', borderRadius: radius.lg, padding: 14, alignItems: 'center' },
   statValue: { fontSize: 24, fontFamily: fonts.black, marginTop: 6 },
   statLabel: { fontSize: 10, color: colors.textMuted, fontFamily: fonts.regular, marginTop: 2 },
-  favCard: { backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  favTitle: { fontSize: 12, fontFamily: fonts.bold, color: colors.text },
-  favMeal: { fontSize: 11, color: colors.textMuted, fontFamily: fonts.regular },
   achRow: { flexDirection: 'row', gap: 8 },
   achBox: { flex: 1, borderRadius: radius.md, paddingVertical: 10, alignItems: 'center' },
   achLabel: { fontSize: 9, fontFamily: fonts.medium, marginTop: 4 },

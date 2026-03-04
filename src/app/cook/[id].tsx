@@ -1,28 +1,68 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { ChefHat, ChevronLeft, Check, Flame, Leaf, CookingPot, UtensilsCrossed, Timer, Volume2, X } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
+import { getCurrentMeal, clearCurrentMeal } from '../../services/mealPlan/mealPlanStore';
+import { markMealCooked } from '../../services/supabase/mealPlans';
+import { incrementCooked, incrementUsed } from '../../services/supabase/stats';
+import { autoConsumePantryItems } from '../../services/supabase/pantry';
+import type { MealPlan } from '../../types';
 
-const STEPS = [
-  { text: 'Corta la pechuga en tiras finas', Icon: UtensilsCrossed, timer: 0 },
-  { text: 'Calienta aceite en el wok a fuego alto', Icon: CookingPot, timer: 0 },
-  { text: 'Saltea el pollo 4 min hasta dorado', Icon: Flame, timer: 240 },
-  { text: 'Añade espinacas y salsa thai', Icon: Leaf, timer: 0 },
-  { text: 'Cocina 2 min más y sirve', Icon: UtensilsCrossed, timer: 120 },
-];
+const STEP_ICONS = [UtensilsCrossed, CookingPot, Flame, Leaf, UtensilsCrossed, CookingPot, Flame];
 
 export default function CookScreen() {
   const [step, setStep] = useState(0);
+  const [meal, setMeal] = useState<MealPlan | null>(null);
   const router = useRouter();
-  const current = STEPS[step];
+
+  useEffect(() => {
+    const m = getCurrentMeal();
+    setMeal(m);
+  }, []);
+
+  if (!meal) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+        <View style={{ padding: spacing.lg, flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ fontSize: 16, fontFamily: fonts.bold, color: colors.textSec }}>No se encontró la receta</Text>
+          <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.back()}>
+            <Text style={{ fontSize: 14, fontFamily: fonts.bold, color: colors.green600 }}>Volver</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const steps = meal.steps;
+  const current = steps[step] ?? '';
+  const StepIcon = STEP_ICONS[step % STEP_ICONS.length];
+  const isLast = step === steps.length - 1;
+
+  async function handleDone() {
+    try {
+      await markMealCooked(meal!.id);
+      await incrementCooked();
+      // Auto-consume pantry ingredients used in this recipe
+      const ingredientNames = meal!.ingredients.map((i) => i.name);
+      const consumed = await autoConsumePantryItems(ingredientNames);
+      // Update stats for each consumed item
+      for (let i = 0; i < consumed; i++) {
+        await incrementUsed().catch(() => {});
+      }
+    } catch (_) {
+      // best effort
+    }
+    clearCurrentMeal();
+    router.back();
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ padding: spacing.lg, flex: 1 }}>
         {/* Close */}
-        <TouchableOpacity style={s.closeBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.closeBtn} onPress={() => { clearCurrentMeal(); router.back(); }}>
           <X size={20} color={colors.textMuted} strokeWidth={2} />
         </TouchableOpacity>
 
@@ -31,11 +71,11 @@ export default function CookScreen() {
           <ChefHat size={15} color={colors.green600} strokeWidth={2.2} />
           <Text style={s.modeLabel}>MODO COCINA</Text>
         </View>
-        <Text style={s.title}>Pollo Thai con Espinacas</Text>
+        <Text style={s.title}>{meal.meal_name}</Text>
 
         {/* Progress dots */}
         <View style={s.dots}>
-          {STEPS.map((_, i) => (
+          {steps.map((_: string, i: number) => (
             <View key={i} style={[s.dot, i <= step && s.dotActive, i === step && s.dotCurrent]} />
           ))}
         </View>
@@ -43,20 +83,11 @@ export default function CookScreen() {
         {/* Step card */}
         <View style={s.stepCard}>
           <View style={s.stepIconBox}>
-            <current.Icon size={36} color={colors.green600} strokeWidth={1.5} />
+            <StepIcon size={36} color={colors.green600} strokeWidth={1.5} />
           </View>
-          <Text style={s.stepNum}>PASO {step + 1} DE {STEPS.length}</Text>
-          <Text style={s.stepText}>{current.text}</Text>
+          <Text style={s.stepNum}>PASO {step + 1} DE {steps.length}</Text>
+          <Text style={s.stepText}>{current}</Text>
         </View>
-
-        {/* Timer */}
-        {current.timer > 0 && (
-          <View style={s.timerCard}>
-            <Timer size={18} color={colors.orange500} strokeWidth={2.2} />
-            <Text style={s.timerValue}>{Math.floor(current.timer / 60)}:{String(current.timer % 60).padStart(2, '0')}</Text>
-            <Text style={s.timerLabel}>Temporizador</Text>
-          </View>
-        )}
 
         <View style={{ flex: 1 }} />
 
@@ -66,11 +97,11 @@ export default function CookScreen() {
             <ChevronLeft size={20} color={colors.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[s.nextBtn, step === STEPS.length - 1 && s.doneBtn]}
-            onPress={() => step === STEPS.length - 1 ? router.back() : setStep(step + 1)}>
-            {step === STEPS.length - 1 && <Check size={18} color="white" strokeWidth={2.5} />}
-            <Text style={[s.nextText, step === STEPS.length - 1 && { color: 'white' }]}>
-              {step === STEPS.length - 1 ? 'Hecho' : 'Siguiente'}
+            style={[s.nextBtn, isLast && s.doneBtn]}
+            onPress={() => isLast ? handleDone() : setStep(step + 1)}>
+            {isLast && <Check size={18} color="white" strokeWidth={2.5} />}
+            <Text style={[s.nextText, isLast && { color: 'white' }]}>
+              {isLast ? 'Hecho' : 'Siguiente'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -97,9 +128,6 @@ const s = StyleSheet.create({
   stepIconBox: { width: 72, height: 72, borderRadius: 20, backgroundColor: colors.green50, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   stepNum: { fontSize: 10, fontFamily: fonts.bold, color: colors.green600, letterSpacing: 1, marginBottom: 8 },
   stepText: { fontSize: 20, fontFamily: fonts.bold, color: colors.text, lineHeight: 28, textAlign: 'center' },
-  timerCard: { backgroundColor: colors.orange50, borderRadius: radius.lg, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.orange100, marginBottom: 16 },
-  timerValue: { fontSize: 32, fontFamily: fonts.black, color: colors.orange500, marginTop: 4 },
-  timerLabel: { fontSize: 11, color: colors.textMuted, fontFamily: fonts.regular, marginTop: 2 },
   navRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   backBtn: { width: 52, height: 52, borderRadius: radius.lg, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' },
   nextBtn: { flex: 1, height: 52, borderRadius: radius.lg, backgroundColor: colors.surface, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
