@@ -36,6 +36,7 @@ import {
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
+import { SkeletonCard } from '../../components/ui/Skeleton';
 import { fetchPantryItems, updatePantryItem, insertPantryItems, deletePantryItem } from '../../services/supabase/pantry';
 import { incrementUsed, incrementThrown } from '../../services/supabase/stats';
 import type { PantryItem } from '../../types';
@@ -361,8 +362,12 @@ export default function PantryTabScreen() {
       )}
 
       {loading ? (
-        <View style={s.center}>
-          <ActivityIndicator size="large" color={colors.green600} />
+        <View style={{ padding: spacing.lg, gap: 4 }}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </View>
       ) : (
         <FlatList

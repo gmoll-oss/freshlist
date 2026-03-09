@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Trophy, CookingPot, Trash2, TrendingUp, Leaf, Star, Share2, Flame, Heart, ThumbsUp, ThumbsDown, BarChart3, Sparkles } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
+import { Skeleton, SkeletonGrid } from '../../components/ui/Skeleton';
 import { fetchUserStats } from '../../services/supabase/stats';
 import { saveFeedback } from '../../services/supabase/feedback';
 import type { UserStats } from '../../types';
@@ -39,8 +40,15 @@ export default function StatsScreen() {
 
   if (loading || !stats) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={colors.green600} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+        <View style={{ padding: spacing.lg, gap: 16, alignItems: 'center' }}>
+          <Skeleton width="40%" height={14} borderRadius={8} />
+          <Skeleton width="60%" height={22} borderRadius={8} />
+          <View style={{ width: '100%', backgroundColor: colors.card, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: colors.border }}>
+            <SkeletonGrid />
+          </View>
+          <Skeleton width="100%" height={50} borderRadius={16} />
+        </View>
       </SafeAreaView>
     );
   }

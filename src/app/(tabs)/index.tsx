@@ -12,6 +12,7 @@ import { setCurrentMeal } from '../../services/mealPlan/mealPlanStore';
 import { updatePantryItem } from '../../services/supabase/pantry';
 import { incrementUsed } from '../../services/supabase/stats';
 import { useOffline } from '../../hooks/useOffline';
+import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton';
 import type { MealType } from '../../types';
 
 function getGreeting(): string {
@@ -97,8 +98,22 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Skeleton loading state */}
+        {loading && !refreshing && (
+          <View style={{ gap: 10, marginBottom: spacing.md }}>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Skeleton width="32%" height={70} borderRadius={16} />
+              <Skeleton width="32%" height={70} borderRadius={16} />
+              <Skeleton width="32%" height={70} borderRadius={16} />
+            </View>
+          </View>
+        )}
+
         {/* 1. Alerta urgente — con boton Usado */}
-        {expiringItems.filter((p) => !usedIds.has(p.id)).length > 0 && (
+        {!loading && expiringItems.filter((p) => !usedIds.has(p.id)).length > 0 && (
           <View style={s.urgentCard}>
             <View style={s.urgentTag}>
               <AlertTriangle size={13} color={colors.red500} strokeWidth={2.5} />

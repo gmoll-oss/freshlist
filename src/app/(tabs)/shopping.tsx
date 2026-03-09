@@ -5,6 +5,7 @@ import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2,
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
+import { SkeletonCard } from '../../components/ui/Skeleton';
 import { STORES } from '../../constants/stores';
 import { useShopping } from '../../hooks/useShopping';
 
@@ -149,7 +150,12 @@ export default function ShoppingScreen() {
         </ScrollView>
 
         {loading ? (
-          <ActivityIndicator size="large" color={colors.green600} style={{ marginTop: 40 }} />
+          <View style={{ gap: 4, marginTop: 10 }}>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </View>
         ) : items.length === 0 ? (
           <View style={s.emptyBox}>
             <View style={s.emptyIconBox}>
