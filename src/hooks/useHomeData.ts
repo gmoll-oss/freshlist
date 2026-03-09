@@ -8,6 +8,8 @@ export interface HomeData {
   stats: UserStats;
   todayMeal: MealPlan | null;
   expiringItems: PantryItem[];
+  pantryCount: number;
+  expiringSoonCount: number;
 }
 
 const DEFAULT_STATS: UserStats = {
@@ -32,6 +34,8 @@ export function useHomeData() {
     stats: DEFAULT_STATS,
     todayMeal: null,
     expiringItems: [],
+    pantryCount: 0,
+    expiringSoonCount: 0,
   });
   const [loading, setLoading] = useState(false);
 
@@ -52,7 +56,14 @@ export function useHomeData() {
         })
         .slice(0, 4);
 
-      setData({ stats, todayMeal, expiringItems });
+      const activeItems = pantryItems.filter((i) => i.status === 'fresh' || i.status === 'expiring');
+      const expiringSoonCount = pantryItems.filter((i) => {
+        if (i.status === 'used' || i.status === 'thrown') return false;
+        const days = daysUntil(i.estimated_expiry);
+        return days >= 0 && days <= 3;
+      }).length;
+
+      setData({ stats, todayMeal, expiringItems, pantryCount: activeItems.length, expiringSoonCount });
     } finally {
       setLoading(false);
     }

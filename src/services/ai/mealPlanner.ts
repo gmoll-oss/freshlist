@@ -37,16 +37,17 @@ function buildUserContext(prefs: UserPreferences): string {
 }
 
 function buildMealRequest(prefs: UserPreferences | null, selectedDays: string[]): string {
-  const mealTypes: string[] = [];
-  if (prefs?.meals_config.breakfast) mealTypes.push('desayuno');
-  if (prefs?.meals_config.lunch) mealTypes.push('comida');
-  if (prefs?.meals_config.dinner) mealTypes.push('cena');
-  if (mealTypes.length === 0) mealTypes.push('cena');
+  const mealTypes: { label: string; type: string }[] = [];
+  if (prefs?.meals_config.breakfast) mealTypes.push({ label: 'desayuno', type: 'breakfast' });
+  if (prefs?.meals_config.lunch) mealTypes.push({ label: 'comida', type: 'lunch' });
+  if (prefs?.meals_config.dinner) mealTypes.push({ label: 'cena', type: 'dinner' });
+  if (mealTypes.length === 0) mealTypes.push({ label: 'cena', type: 'dinner' });
 
   const daysList = selectedDays.join(', ');
-  const mealsStr = mealTypes.join(' y ');
+  const mealsStr = mealTypes.map(m => m.label).join(' y ');
+  const typesStr = mealTypes.map(m => `${m.label} (meal_type: "${m.type}")`).join(', ');
 
-  return `Genera un plan de ${mealsStr} para: ${daysList} (${selectedDays.length} dias).`;
+  return `Genera un plan de ${mealsStr} para: ${daysList} (${selectedDays.length} dias).\nPara cada comida usa el meal_type correspondiente: ${typesStr}.\nGenera una entrada separada por cada comida de cada dia.`;
 }
 
 export async function generateMealPlan(

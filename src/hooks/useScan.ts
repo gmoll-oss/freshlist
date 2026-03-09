@@ -142,5 +142,39 @@ export function useScan() {
     setLastBase64(null);
   }, []);
 
-  return { status, error, capture, pickImage, rescan, rescanFromGallery, retry, confirm, clear };
+  /** Capture photo and return base64 without processing */
+  const captureBase64 = useCallback(async () => {
+    setStatus('capturing');
+    setError(null);
+    const base64 = await capturePhoto();
+    if (!base64) {
+      setStatus('idle');
+      return null;
+    }
+    setLastBase64(base64);
+    setStatus('idle');
+    return base64;
+  }, []);
+
+  /** Pick from gallery and return base64 without processing */
+  const pickBase64 = useCallback(async () => {
+    setStatus('capturing');
+    setError(null);
+    const base64 = await pickFromGallery();
+    if (!base64) {
+      setStatus('idle');
+      return null;
+    }
+    setLastBase64(base64);
+    setStatus('idle');
+    return base64;
+  }, []);
+
+  return {
+    status, error,
+    capture, pickImage, captureBase64, pickBase64,
+    processImage, processRescan,
+    rescan, rescanFromGallery,
+    retry, confirm, clear,
+  };
 }

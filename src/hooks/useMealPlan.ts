@@ -20,6 +20,8 @@ export function useMealPlan() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previousDays, setPreviousDays] = useState<string[]>([]);
+  const [pantryCount, setPantryCount] = useState(0);
+  const [expiringSoonCount, setExpiringSoonCount] = useState(0);
 
   const weekStart = getCurrentWeekStart();
 
@@ -27,12 +29,25 @@ export function useMealPlan() {
     setLoading(true);
     setError(null);
     try {
-      const [data, prevDays] = await Promise.all([
+      const [data, prevDays, pantryItems] = await Promise.all([
         fetchMealPlans(weekStart),
         getPreviousWeekDays(weekStart),
+        fetchPantryItems().catch(() => []),
       ]);
       setPlans(data);
       setPreviousDays(prevDays);
+
+      const active = pantryItems.filter((i) => i.status === 'fresh' || i.status === 'expiring');
+      setPantryCount(active.length);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const expiring = active.filter((i) => {
+        const exp = new Date(i.estimated_expiry);
+        exp.setHours(0, 0, 0, 0);
+        const days = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        return days >= 0 && days <= 3;
+      }).length;
+      setExpiringSoonCount(expiring);
     } catch (e: any) {
       setError(e.message ?? 'Error cargando plan');
     } finally {
@@ -64,12 +79,14 @@ export function useMealPlan() {
       const mealsToInsert = aiResponse.meals.map((m) => ({
         week_start: weekStart,
         day: m.day,
+        meal_type: m.meal_type ?? 'dinner',
         meal_name: m.meal_name,
         ingredients: m.ingredients,
         steps: m.steps,
         prep_time_minutes: m.prep_time_minutes,
         servings: m.servings,
         batch_note: m.batch_note,
+        reuses_from: m.reuses_from ?? null,
         cooked: false,
       }));
 
@@ -108,5 +125,5 @@ export function useMealPlan() {
     }
   }, [plans]);
 
-  return { plans, loading, generating, error, load, generate, markCooked, weekStart, previousDays };
+  return { plans, loading, generating, error, load, generate, markCooked, weekStart, previousDays, pantryCount, expiringSoonCount };
 }

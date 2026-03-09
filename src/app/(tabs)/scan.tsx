@@ -1,87 +1,110 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Camera, Receipt, Sparkles, Image, RefreshCw } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { useScan } from '../../hooks/useScan';
+import { fetchPantryItems } from '../../services/supabase/pantry';
 
-type ScanMode = 'ticket' | 'fridge' | 'rescan';
+type ScanMode = 'ticket' | 'fridge';
 
 export default function ScanScreen() {
   const [mode, setMode] = useState<ScanMode>('ticket');
   const scan = useScan();
   const router = useRouter();
 
-  async function handleCapture() {
-    if (mode === 'rescan') {
-      const ok = await scan.rescan();
-      if (ok) router.push('/rescan-results');
+  /** After capturing a fridge photo, check if user wants to update inventory or add new */
+  async function handleFridgeResult(base64: string) {
+    // Check if user has existing pantry items
+    let pantryCount = 0;
+    try {
+      const items = await fetchPantryItems();
+      pantryCount = items.filter((i) => i.status === 'fresh' || i.status === 'expiring').length;
+    } catch {}
+
+    if (pantryCount > 0) {
+      // User has items — ask what they want to do
+      Alert.alert(
+        'Tienes ' + pantryCount + ' productos registrados',
+        'Que quieres hacer con esta foto?',
+        [
+          {
+            text: 'Actualizar inventario',
+            onPress: async () => {
+              const ok = await scan.processRescan(base64);
+              if (ok) router.push('/rescan-results');
+            },
+          },
+          {
+            text: 'Anadir nuevos',
+            onPress: async () => {
+              const result = await scan.processImage(base64, 'fridge');
+              if (result) router.push('/products');
+            },
+          },
+          { text: 'Cancelar', style: 'cancel' },
+        ],
+      );
     } else {
-      const result = await scan.capture(mode);
+      // No items — normal scan
+      const result = await scan.processImage(base64, 'fridge');
       if (result) router.push('/products');
+    }
+  }
+
+  async function handleCapture() {
+    if (mode === 'ticket') {
+      const result = await scan.capture('ticket');
+      if (result) router.push('/products');
+    } else {
+      // Fridge: capture first, then decide
+      const base64 = await scan.captureBase64();
+      if (!base64) return;
+      await handleFridgeResult(base64);
     }
   }
 
   async function handleGallery() {
-    if (mode === 'rescan') {
-      const ok = await scan.rescanFromGallery();
-      if (ok) router.push('/rescan-results');
-    } else {
-      const result = await scan.pickImage(mode);
+    if (mode === 'ticket') {
+      const result = await scan.pickImage('ticket');
       if (result) router.push('/products');
+    } else {
+      const base64 = await scan.pickBase64();
+      if (!base64) return;
+      await handleFridgeResult(base64);
     }
   }
 
   async function handleRetry() {
-    if (mode === 'rescan') {
-      const ok = await scan.rescan();
-      if (ok) router.push('/rescan-results');
-    } else {
-      const result = await scan.retry(mode as 'ticket' | 'fridge');
-      if (result) router.push('/products');
-    }
+    const result = await scan.retry(mode);
+    if (result) router.push('/products');
   }
 
   const isWorking = scan.status === 'capturing' || scan.status === 'processing';
 
-  const modeConfig: { key: ScanMode; label: string }[] = [
-    { key: 'ticket', label: 'Ticket' },
-    { key: 'fridge', label: 'Nevera' },
-    { key: 'rescan', label: 'Re-escanear' },
-  ];
-
   const viewfinderText = mode === 'ticket'
     ? 'Encuadra el ticket completo'
-    : mode === 'fridge'
-      ? 'Foto de tu nevera abierta'
-      : 'Foto actual de tu nevera';
-
-  const tips = mode === 'rescan'
-    ? ['Haz la foto desde el mismo angulo', 'Incluye toda la nevera/despensa', 'Detectaremos que has consumido']
-    : ['Ticket completo en la foto', 'Buena iluminacion, sin sombras', 'Superficie plana, sin arrugas'];
+    : 'Foto de tu nevera abierta';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ padding: spacing.lg }}>
         <Text style={s.title}>Escanear</Text>
-        <Text style={s.subtitle}>
-          {mode === 'rescan' ? 'Actualiza tu inventario con una nueva foto' : 'Elige que quieres escanear'}
-        </Text>
+        <Text style={s.subtitle}>Elige que quieres escanear</Text>
 
         <View style={s.toggle}>
-          {modeConfig.map((m) => (
+          {([
+            { key: 'ticket' as ScanMode, icon: Receipt, label: 'Ticket' },
+            { key: 'fridge' as ScanMode, icon: Camera, label: 'Nevera / Despensa' },
+          ]).map((m) => (
             <TouchableOpacity
               key={m.key}
               style={[s.toggleBtn, mode === m.key && s.toggleActive]}
               onPress={() => setMode(m.key)}
               disabled={isWorking}
             >
-              {m.key === 'rescan' ? (
-                <RefreshCw size={14} color={mode === m.key ? 'white' : colors.textSec} strokeWidth={2.2} />
-              ) : (
-                <Receipt size={14} color={mode === m.key ? 'white' : colors.textSec} strokeWidth={2.2} />
-              )}
+              <m.icon size={15} color={mode === m.key ? 'white' : colors.textSec} strokeWidth={2.2} />
               <Text style={[s.toggleText, mode === m.key && s.toggleTextActive]}>{m.label}</Text>
             </TouchableOpacity>
           ))}
@@ -92,9 +115,7 @@ export default function ScanScreen() {
           {scan.status === 'processing' ? (
             <View style={s.processingBox}>
               <ActivityIndicator size="large" color={colors.green400} />
-              <Text style={s.processingText}>
-                {mode === 'rescan' ? 'Comparando con tu inventario...' : 'Analizando imagen...'}
-              </Text>
+              <Text style={s.processingText}>Analizando imagen...</Text>
             </View>
           ) : scan.status === 'error' ? (
             <View style={s.processingBox}>
@@ -127,11 +148,12 @@ export default function ScanScreen() {
         <View style={s.tipsCard}>
           <View style={s.tipsHeader}>
             <Sparkles size={13} color={colors.green600} strokeWidth={2.2} />
-            <Text style={s.tipsTitle}>
-              {mode === 'rescan' ? 'Tips para re-escaneo' : 'Tips para mejor resultado'}
-            </Text>
+            <Text style={s.tipsTitle}>Tips para mejor resultado</Text>
           </View>
-          {tips.map((t, i) => (
+          {(mode === 'ticket'
+            ? ['Ticket completo en la foto', 'Buena iluminacion, sin sombras', 'Superficie plana, sin arrugas']
+            : ['Abre la nevera entera', 'Buena luz, sin reflejos', 'Incluye todos los estantes']
+          ).map((t, i) => (
             <Text key={i} style={s.tip}>• {t}</Text>
           ))}
         </View>
@@ -143,13 +165,13 @@ export default function ScanScreen() {
 const s = StyleSheet.create({
   title: { fontSize: 20, fontFamily: fonts.black, color: colors.text, textAlign: 'center', marginTop: 8 },
   subtitle: { fontSize: 13, color: colors.textMuted, fontFamily: fonts.regular, textAlign: 'center', marginBottom: 16 },
-  toggle: { flexDirection: 'row', gap: 6, marginBottom: 16 },
+  toggle: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   toggleBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: radius.md, backgroundColor: colors.surface,
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5,
+    flex: 1, paddingVertical: 11, borderRadius: radius.md, backgroundColor: colors.surface,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6,
   },
   toggleActive: { backgroundColor: colors.green600 },
-  toggleText: { fontSize: 12, fontFamily: fonts.bold, color: colors.textSec },
+  toggleText: { fontSize: 13, fontFamily: fonts.bold, color: colors.textSec },
   toggleTextActive: { color: 'white' },
   camera: {
     backgroundColor: '#1C1917', borderRadius: 24, height: 260,

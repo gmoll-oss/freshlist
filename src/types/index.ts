@@ -10,28 +10,34 @@ export interface PantryItem {
   confidence: 'alta' | 'media' | 'baja';
 }
 
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
 export interface MealPlan {
   id: string;
   week_start: string;
   day: string;
+  meal_type: MealType;
   meal_name: string;
   ingredients: { name: string; amount: string }[];
   steps: string[];
   prep_time_minutes: number;
   servings: number;
   batch_note: string | null;
+  reuses_from: string | null;
   cooked: boolean;
 }
 
 export interface MealPlanAIResponse {
   meals: {
     day: string;
+    meal_type: MealType;
     meal_name: string;
     ingredients: { name: string; amount: string }[];
     steps: string[];
     prep_time_minutes: number;
     servings: number;
     batch_note: string | null;
+    reuses_from: string | null;
   }[];
   shopping_needed: { name: string; reason: string }[];
 }
