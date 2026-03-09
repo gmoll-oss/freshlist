@@ -5,15 +5,20 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#059669"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.freshlist"
+      "bundleIdentifier": "com.freshlist.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "FreshList necesita la camara para escanear tickets y fotos de tu nevera.",
+        "NSPhotoLibraryUsageDescription": "FreshList necesita acceso a tus fotos para seleccionar imagenes de tickets."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -50,7 +55,14 @@
           "cameraPermission": "FreshList necesita acceso a la cámara para escanear tickets y fotos de tu nevera."
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#059669"
+        }
+      ]
     ]
   }
 }
