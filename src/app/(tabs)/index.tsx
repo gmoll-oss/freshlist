@@ -1,12 +1,15 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Flame, CookingPot, ChefHat, Timer, UtensilsCrossed, ChevronRight, AlertTriangle, Receipt, Package, Sparkles, ScanLine, MessageCircle, ArrowRight } from 'lucide-react-native';
+import { Flame, CookingPot, ChefHat, Timer, UtensilsCrossed, ChevronRight, AlertTriangle, Receipt, Package, Sparkles, ScanLine, MessageCircle, ArrowRight, Check, Coffee, Apple } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
 import { useHomeData } from '../../hooks/useHomeData';
 import { setCurrentMeal } from '../../services/mealPlan/mealPlanStore';
+import { updatePantryItem } from '../../services/supabase/pantry';
+import { incrementUsed } from '../../services/supabase/stats';
+import type { MealType } from '../../types';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -15,6 +18,20 @@ function getGreeting(): string {
   if (h < 20) return 'Buenas tardes';
   return 'Buenas noches';
 }
+
+const MEAL_ICON: Record<MealType, any> = {
+  breakfast: Coffee,
+  lunch: UtensilsCrossed,
+  dinner: CookingPot,
+  snack: Apple,
+};
+
+const MEAL_LABEL: Record<MealType, string> = {
+  breakfast: 'Desayuno',
+  lunch: 'Comida',
+  dinner: 'Cena',
+  snack: 'Snack',
+};
 
 function getUserName(user: any): string {
   if (!user) return 'Chef';
@@ -28,17 +45,21 @@ function getUserName(user: any): string {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { stats, todayMeal, expiringItems, pantryCount, expiringSoonCount, loading, load } = useHomeData();
+  const { stats, todayMeals, expiringItems, pantryCount, expiringSoonCount, loading, load } = useHomeData();
+  const [usedIds, setUsedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { load(); }, [load]);
 
   const name = getUserName(user);
   const initial = name.charAt(0).toUpperCase();
 
-  function handleCookToday() {
-    if (todayMeal) {
-      setCurrentMeal(todayMeal);
-      router.push(`/cook/${todayMeal.id}`);
+  async function handleMarkUsed(id: string) {
+    try {
+      await updatePantryItem(id, { status: 'used' });
+      await incrementUsed();
+      setUsedIds((prev) => new Set(prev).add(id));
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
     }
   }
 
@@ -56,32 +77,34 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 1. Alerta urgente — lo mas importante */}
-        {expiringItems.length > 0 && (
+        {/* 1. Alerta urgente — con boton Usado */}
+        {expiringItems.filter((p) => !usedIds.has(p.id)).length > 0 && (
           <View style={s.urgentCard}>
             <View style={s.urgentTag}>
               <AlertTriangle size={13} color={colors.red500} strokeWidth={2.5} />
               <Text style={s.urgentTagText}>USAR HOY</Text>
             </View>
-            <View style={s.urgentRow}>
-              {expiringItems.slice(0, 3).map((p, i) => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const expiry = new Date(p.estimated_expiry);
-                expiry.setHours(0, 0, 0, 0);
-                const diff = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                const label = diff <= 0 ? 'Caduca hoy' : 'Manana';
-                return (
-                  <View key={i} style={s.urgentItem}>
-                    <View style={s.urgentDot} />
-                    <View>
-                      <Text style={s.urgentName}>{p.name}</Text>
-                      <Text style={s.urgentDays}>{label}</Text>
-                    </View>
+            {expiringItems.filter((p) => !usedIds.has(p.id)).slice(0, 4).map((p) => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const expiry = new Date(p.estimated_expiry);
+              expiry.setHours(0, 0, 0, 0);
+              const diff = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              const label = diff <= 0 ? 'Caduca hoy' : 'Manana';
+              return (
+                <View key={p.id} style={s.urgentItem}>
+                  <View style={s.urgentDot} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.urgentName}>{p.name}</Text>
+                    <Text style={s.urgentDays}>{label}</Text>
                   </View>
-                );
-              })}
-            </View>
+                  <TouchableOpacity style={s.urgentUsedBtn} onPress={() => handleMarkUsed(p.id)}>
+                    <Check size={12} color={colors.green600} strokeWidth={2.5} />
+                    <Text style={s.urgentUsedText}>Usado</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </View>
         )}
 
@@ -99,35 +122,49 @@ export default function HomeScreen() {
           <ChevronRight size={16} color={colors.textDim} />
         </TouchableOpacity>
 
-        {/* 3. Receta del dia — compacta */}
-        {todayMeal ? (
-          <TouchableOpacity
-            style={s.mealCard}
-            onPress={todayMeal.cooked ? () => router.push('/plan') : handleCookToday}
-          >
-            <View style={s.mealLeft}>
-              <View style={s.mealTag}>
-                <CookingPot size={12} color={colors.green600} strokeWidth={2.5} />
-                <Text style={s.mealTagText}>HOY</Text>
-              </View>
-              <Text style={s.mealName} numberOfLines={1}>{todayMeal.meal_name}</Text>
-              <View style={s.mealMeta}>
-                <Timer size={11} color={colors.textMuted} strokeWidth={2} />
-                <Text style={s.mealMetaText}>{todayMeal.prep_time_minutes} min</Text>
-                <UtensilsCrossed size={11} color={colors.textMuted} strokeWidth={2} />
-                <Text style={s.mealMetaText}>{todayMeal.servings} pers</Text>
-              </View>
+        {/* 3. Mi dia — multi-meal widget */}
+        {todayMeals.length > 0 ? (
+          <View style={s.dayWidget}>
+            <View style={s.dayWidgetHeader}>
+              <Sparkles size={13} color={colors.green600} strokeWidth={2.5} />
+              <Text style={s.dayWidgetTitle}>MI DIA</Text>
             </View>
-            {!todayMeal.cooked ? (
-              <View style={s.mealCookBtn}>
-                <ChefHat size={16} color="white" strokeWidth={2.5} />
-              </View>
-            ) : (
-              <View style={s.mealDoneBtn}>
-                <Text style={s.mealDoneText}>Hecho</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            {todayMeals.map((meal) => {
+              const MealIcon = MEAL_ICON[meal.meal_type] ?? CookingPot;
+              return (
+                <TouchableOpacity
+                  key={meal.id}
+                  style={[s.mealCard, meal.cooked && { opacity: 0.6 }]}
+                  onPress={() => {
+                    if (meal.cooked) { router.push('/plan'); return; }
+                    setCurrentMeal(meal);
+                    router.push(`/cook/${meal.id}`);
+                  }}
+                >
+                  <View style={s.mealLeft}>
+                    <View style={s.mealTag}>
+                      <MealIcon size={12} color={colors.green600} strokeWidth={2.5} />
+                      <Text style={s.mealTagText}>{MEAL_LABEL[meal.meal_type] ?? 'Cena'}</Text>
+                    </View>
+                    <Text style={s.mealName} numberOfLines={1}>{meal.meal_name}</Text>
+                    <View style={s.mealMeta}>
+                      <Timer size={11} color={colors.textMuted} strokeWidth={2} />
+                      <Text style={s.mealMetaText}>{meal.prep_time_minutes} min</Text>
+                    </View>
+                  </View>
+                  {meal.cooked ? (
+                    <View style={s.mealDoneBtn}>
+                      <Text style={s.mealDoneText}>Hecho</Text>
+                    </View>
+                  ) : (
+                    <View style={s.mealCookBtn}>
+                      <ChefHat size={16} color="white" strokeWidth={2.5} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         ) : (
           <TouchableOpacity style={s.mealCard} onPress={() => router.push('/plan')}>
             <View style={s.mealLeft}>
@@ -175,7 +212,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Autopilot banner */}
-        {!todayMeal && (
+        {todayMeals.length === 0 && (
           <TouchableOpacity style={s.autopilotBanner} onPress={() => router.push('/autopilot' as any)}>
             <Sparkles size={18} color={colors.green600} strokeWidth={2} />
             <View style={{ flex: 1 }}>
@@ -208,11 +245,12 @@ const s = StyleSheet.create({
   urgentCard: { backgroundColor: colors.red50, borderRadius: radius.lg, padding: 14, borderWidth: 1, borderColor: colors.red100, marginBottom: spacing.md },
   urgentTag: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   urgentTagText: { fontSize: 11, fontFamily: fonts.bold, color: colors.red500 },
-  urgentRow: { flexDirection: 'row', gap: 8 },
-  urgentItem: { flex: 1, backgroundColor: colors.card, borderRadius: radius.md, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: colors.red100 },
+  urgentItem: { backgroundColor: colors.card, borderRadius: radius.md, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: colors.red100, marginBottom: 4 },
   urgentDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.red400 },
   urgentName: { fontSize: 12, fontFamily: fonts.bold, color: colors.text },
   urgentDays: { fontSize: 10, color: colors.red400, fontFamily: fonts.regular },
+  urgentUsedBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.green50, borderRadius: radius.sm, paddingHorizontal: 10, paddingVertical: 6 },
+  urgentUsedText: { fontSize: 11, fontFamily: fonts.bold, color: colors.green600 },
 
   // Pantry summary
   pantryCard: {
@@ -223,10 +261,15 @@ const s = StyleSheet.create({
   pantryTitle: { fontSize: 14, fontFamily: fonts.bold, color: colors.text },
   pantryWarn: { fontSize: 11, color: colors.orange500, fontFamily: fonts.medium, marginTop: 2 },
 
+  // Mi dia widget
+  dayWidget: { marginBottom: spacing.md },
+  dayWidgetHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
+  dayWidgetTitle: { fontSize: 11, fontFamily: fonts.bold, color: colors.green600, letterSpacing: 0.8 },
+
   // Compact meal card
   mealCard: {
     backgroundColor: colors.card, borderRadius: radius.lg, padding: 14, borderWidth: 1, borderColor: colors.border,
-    flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: spacing.md,
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6,
   },
   mealLeft: { flex: 1 },
   mealTag: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },

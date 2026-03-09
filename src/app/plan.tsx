@@ -52,6 +52,15 @@ export default function PlanScreen() {
   const [actionMeal, setActionMeal] = useState<MealPlan | null>(null);
   const [servingsModal, setServingsModal] = useState<MealPlan | null>(null);
   const [selectedServings, setSelectedServings] = useState(2);
+  const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
+
+  function toggleIngredients(id: string) {
+    setExpandedMeals((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -302,7 +311,25 @@ export default function PlanScreen() {
                         <Users size={12} color={colors.green600} strokeWidth={2.2} />
                         <Text style={s.metaText}>{meal.servings} pers</Text>
                       </View>
+                      {meal.ingredients.length > 0 && (
+                        <TouchableOpacity onPress={() => toggleIngredients(meal.id)} style={s.ingredToggle}>
+                          <Package size={11} color={colors.textMuted} strokeWidth={2} />
+                          <Text style={s.ingredToggleText}>
+                            {expandedMeals.has(meal.id) ? 'Ocultar' : `${meal.ingredients.length} ingr.`}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
+
+                    {expandedMeals.has(meal.id) && meal.ingredients.length > 0 && (
+                      <View style={s.ingredList}>
+                        {meal.ingredients.map((ing, idx) => (
+                          <Text key={idx} style={s.ingredItem}>
+                            {ing.amount} {ing.name}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
 
                     {meal.reuses_from && (
                       <View style={s.reusesNote}>
@@ -483,9 +510,13 @@ const s = StyleSheet.create({
   },
   mealName: { fontSize: 16, fontFamily: fonts.bold, color: colors.text, marginBottom: 8 },
   mealNameCooked: { textDecorationLine: 'line-through' },
-  mealMeta: { flexDirection: 'row', gap: 16, marginBottom: 8 },
+  mealMeta: { flexDirection: 'row', gap: 16, marginBottom: 8, flexWrap: 'wrap' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 12, fontFamily: fonts.medium, color: colors.textSec },
+  ingredToggle: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  ingredToggleText: { fontSize: 11, fontFamily: fonts.medium, color: colors.textMuted },
+  ingredList: { backgroundColor: colors.surface, borderRadius: radius.sm, padding: 10, marginBottom: 8 },
+  ingredItem: { fontSize: 12, fontFamily: fonts.regular, color: colors.textSec, lineHeight: 20 },
   reusesNote: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: colors.green50, borderRadius: radius.sm, padding: 8, marginBottom: 8,

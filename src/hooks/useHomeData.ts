@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react';
 import { fetchUserStats } from '../services/supabase/stats';
-import { getTodaysMeal } from '../services/supabase/mealPlans';
+import { getTodaysMeals } from '../services/supabase/mealPlans';
 import { fetchPantryItems } from '../services/supabase/pantry';
 import type { UserStats, MealPlan, PantryItem } from '../types';
 
 export interface HomeData {
   stats: UserStats;
-  todayMeal: MealPlan | null;
+  todayMeals: MealPlan[];
   expiringItems: PantryItem[];
   pantryCount: number;
   expiringSoonCount: number;
@@ -32,7 +32,7 @@ function daysUntil(dateStr: string): number {
 export function useHomeData() {
   const [data, setData] = useState<HomeData>({
     stats: DEFAULT_STATS,
-    todayMeal: null,
+    todayMeals: [],
     expiringItems: [],
     pantryCount: 0,
     expiringSoonCount: 0,
@@ -42,9 +42,9 @@ export function useHomeData() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [stats, todayMeal, pantryItems] = await Promise.all([
+      const [stats, todayMeals, pantryItems] = await Promise.all([
         fetchUserStats().catch(() => DEFAULT_STATS),
-        getTodaysMeal().catch(() => null),
+        getTodaysMeals().catch(() => []),
         fetchPantryItems().catch(() => []),
       ]);
 
@@ -63,7 +63,7 @@ export function useHomeData() {
         return days >= 0 && days <= 3;
       }).length;
 
-      setData({ stats, todayMeal, expiringItems, pantryCount: activeItems.length, expiringSoonCount });
+      setData({ stats, todayMeals, expiringItems, pantryCount: activeItems.length, expiringSoonCount });
     } finally {
       setLoading(false);
     }

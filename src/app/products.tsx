@@ -27,6 +27,7 @@ import {
   SprayCan,
   Package,
   Croissant,
+  Sparkles,
 } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { getScanResult, clearScanResult } from '../services/scan/scanStore';
@@ -65,6 +66,7 @@ export default function ProductsScreen() {
   const [products, setProducts] = useState<PantryItem[]>([]);
   const [storeName, setStoreName] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const result = getScanResult();
@@ -90,7 +92,7 @@ export default function ProductsScreen() {
     try {
       await insertPantryItems(products);
       clearScanResult();
-      router.back();
+      setSaved(true);
     } catch (e: any) {
       Alert.alert('Error', e.message ?? 'No se pudieron guardar los productos');
     } finally {
@@ -170,8 +172,8 @@ export default function ProductsScreen() {
         }
       />
 
-      {/* Save button */}
-      {products.length > 0 && (
+      {/* Save button / Post-save CTA */}
+      {products.length > 0 && !saved && (
         <View style={s.footer}>
           <TouchableOpacity style={s.saveBtn} onPress={handleSave} disabled={saving}>
             {saving ? (
@@ -182,6 +184,18 @@ export default function ProductsScreen() {
                 <Text style={s.saveText}>Guardar en despensa</Text>
               </>
             )}
+          </TouchableOpacity>
+        </View>
+      )}
+      {saved && (
+        <View style={s.footer}>
+          <Text style={s.savedText}>{products.length} productos guardados</Text>
+          <TouchableOpacity style={s.planCta} onPress={() => router.replace('/plan')}>
+            <Sparkles size={16} color="white" strokeWidth={2.5} />
+            <Text style={s.planCtaText}>Generar plan de comidas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.backCta} onPress={() => router.back()}>
+            <Text style={s.backCtaText}>Volver</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -270,4 +284,18 @@ const s = StyleSheet.create({
     borderRadius: radius.md,
   },
   saveText: { fontSize: 15, fontFamily: fonts.bold, color: 'white' },
+  savedText: { fontSize: 14, fontFamily: fonts.bold, color: colors.green700, textAlign: 'center', marginBottom: 10 },
+  planCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.green600,
+    paddingVertical: 16,
+    borderRadius: radius.md,
+    marginBottom: 8,
+  },
+  planCtaText: { fontSize: 15, fontFamily: fonts.bold, color: 'white' },
+  backCta: { alignItems: 'center', paddingVertical: 10 },
+  backCtaText: { fontSize: 13, fontFamily: fonts.medium, color: colors.textMuted },
 });

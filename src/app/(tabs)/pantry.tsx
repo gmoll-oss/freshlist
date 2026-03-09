@@ -4,6 +4,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
+  TextInput,
   ActivityIndicator,
   Alert,
   RefreshControl,
@@ -24,9 +25,12 @@ import {
   Croissant,
   Check,
   Trash2,
+  Plus,
+  ScanLine,
 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
-import { fetchPantryItems, updatePantryItem } from '../../services/supabase/pantry';
+import { fetchPantryItems, updatePantryItem, insertPantryItems } from '../../services/supabase/pantry';
 import { incrementUsed, incrementThrown } from '../../services/supabase/stats';
 import type { PantryItem } from '../../types';
 
@@ -61,9 +65,11 @@ function freshnessInfo(item: PantryItem) {
 }
 
 export default function PantryTabScreen() {
+  const router = useRouter();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [newProduct, setNewProduct] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -101,6 +107,32 @@ export default function PantryTabScreen() {
       setItems((prev) => prev.map((i) => i.id === id ? { ...i, status: 'thrown' as const } : i));
     } catch (e: any) {
       Alert.alert('Error', e.message);
+    }
+  }
+
+  async function handleAddManual() {
+    const name = newProduct.trim();
+    if (!name) return;
+    const today = new Date().toISOString().split('T')[0];
+    const expiry = new Date();
+    expiry.setDate(expiry.getDate() + 7);
+    const newItem: PantryItem = {
+      id: `manual-${Date.now()}`,
+      name,
+      category: 'Otro',
+      quantity: 1,
+      unit: 'ud',
+      purchase_date: today,
+      estimated_expiry: expiry.toISOString().split('T')[0],
+      status: 'fresh',
+      confidence: 'media',
+    };
+    try {
+      await insertPantryItems([newItem]);
+      setNewProduct('');
+      await load();
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'No se pudo añadir');
     }
   }
 
@@ -147,6 +179,28 @@ export default function PantryTabScreen() {
     <SafeAreaView style={s.container}>
       <View style={s.header}>
         <Text style={s.title}>Mi Despensa</Text>
+      </View>
+
+      {/* Manual add + rescan */}
+      <View style={s.actionRow}>
+        <View style={s.addInputRow}>
+          <TextInput
+            style={s.addInput}
+            placeholder="Añadir producto..."
+            placeholderTextColor={colors.textMuted}
+            value={newProduct}
+            onChangeText={setNewProduct}
+            onSubmitEditing={handleAddManual}
+            returnKeyType="done"
+          />
+          <TouchableOpacity style={s.addBtn} onPress={handleAddManual}>
+            <Plus size={16} color="white" strokeWidth={2.5} />
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity style={s.rescanBtn} onPress={() => router.push('/(tabs)/scan' as any)}>
+          <ScanLine size={16} color={colors.green600} strokeWidth={2} />
+          <Text style={s.rescanText}>Escanear</Text>
+        </TouchableOpacity>
       </View>
 
       {!loading && activeItems.length > 0 && (
@@ -198,6 +252,45 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   title: { fontSize: 18, fontFamily: fonts.black, color: colors.text },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  addInputRow: { flex: 1, flexDirection: 'row', gap: 6 },
+  addInput: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  addBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.green600,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rescanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.green50,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.green200,
+  },
+  rescanText: { fontSize: 12, fontFamily: fonts.bold, color: colors.green600 },
   summary: {
     flexDirection: 'row',
     gap: 8,

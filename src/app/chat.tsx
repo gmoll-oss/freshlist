@@ -11,6 +11,7 @@ import { useChat, ChatMessage } from '../hooks/useChat';
 
 const QUICK_SUGGESTIONS = [
   'Que cocino hoy?',
+  'Marca algo como usado',
   'No me apetece cocinar mucho',
   'Cambia la cena de manana',
   'Que caduca pronto?',

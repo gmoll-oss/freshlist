@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -54,12 +54,13 @@ export default function CookScreen() {
   }
 
   async function handleDone() {
+    let consumed = 0;
+    const ingredientNames = meal!.ingredients.map((i) => i.name);
     try {
       await markMealCooked(meal!.id);
       await incrementCooked();
       await incrementTimesCooked(meal!.meal_name).catch(() => {});
-      const ingredientNames = meal!.ingredients.map((i) => i.name);
-      const consumed = await autoConsumePantryItems(ingredientNames);
+      consumed = await autoConsumePantryItems(ingredientNames);
       for (let i = 0; i < consumed; i++) {
         await incrementUsed().catch(() => {});
       }
@@ -67,7 +68,15 @@ export default function CookScreen() {
       // best effort
     }
     clearCurrentMeal();
-    router.back();
+    if (consumed > 0) {
+      Alert.alert(
+        'Buen provecho!',
+        `${consumed} ingrediente${consumed > 1 ? 's' : ''} marcado${consumed > 1 ? 's' : ''} como usado${consumed > 1 ? 's' : ''} en tu despensa`,
+        [{ text: 'OK', onPress: () => router.back() }],
+      );
+    } else {
+      router.back();
+    }
   }
 
   return (
