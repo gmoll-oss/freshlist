@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import {
   Store,
@@ -84,6 +85,7 @@ export default function ProductsScreen() {
   }
 
   function removeProduct(id: string) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }
 
@@ -92,6 +94,7 @@ export default function ProductsScreen() {
     setSaving(true);
     try {
       await insertPantryItems(products);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       clearScanResult();
       await addScanToHistory({
         mode: storeName ? 'ticket' : 'fridge',
@@ -165,6 +168,11 @@ export default function ProductsScreen() {
             <Text style={{ color: colors.orange500 }}> · {expiringCount} caducan pronto</Text>
           )}
         </Text>
+        {products.length > 0 && (
+          <Text style={s.categoryCount}>
+            {[...new Set(products.map((p) => p.category))].length} categorias
+          </Text>
+        )}
       </View>
 
       {/* Product list */}
@@ -235,6 +243,7 @@ const s = StyleSheet.create({
   storeText: { fontSize: 12, fontFamily: fonts.bold, color: colors.green700 },
   summary: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   summaryText: { fontSize: 13, fontFamily: fonts.medium, color: colors.textSec },
+  categoryCount: { fontSize: 11, fontFamily: fonts.regular, color: colors.textMuted, marginTop: 2 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

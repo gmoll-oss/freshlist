@@ -198,6 +198,8 @@ export default function ProfileScreen() {
           <LogOut size={18} color={colors.red500} strokeWidth={2} />
           <Text style={s.logoutText}>Cerrar sesion</Text>
         </TouchableOpacity>
+
+        <Text style={s.versionText}>FreshList v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -234,4 +236,5 @@ const s = StyleSheet.create({
     borderRadius: radius.lg, borderWidth: 1, borderColor: colors.red100,
   },
   logoutText: { fontSize: 15, fontFamily: fonts.bold, color: colors.red500 },
+  versionText: { fontSize: 11, fontFamily: fonts.regular, color: colors.textDim, textAlign: 'center', marginTop: 16, marginBottom: 20 },
 });
