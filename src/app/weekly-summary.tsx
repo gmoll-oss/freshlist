@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, CookingPot, CalendarCheck, Leaf, Trash2, TrendingUp, Sparkles, ChevronRight } from 'lucide-react-native';
+import ReAnimated, { FadeInDown } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { generateAndSaveSummary, fetchWeeklySummary, getPreviousWeekStart, getCurrentWeekStart, updateAiFeedback } from '../services/supabase/weeklySummary';
 import { generateWeeklyInsight } from '../services/ai/weeklyInsight';
@@ -124,7 +125,7 @@ export default function WeeklySummaryScreen() {
         </View>
 
         {/* Stats grid */}
-        <View style={s.mainCard}>
+        <ReAnimated.View entering={FadeInDown.delay(100).duration(400)} style={s.mainCard}>
           <View style={s.grid}>
             {stats.map((st, i) => (
               <View key={i} style={[s.statBox, { backgroundColor: st.bg }]}>
@@ -144,10 +145,10 @@ export default function WeeklySummaryScreen() {
               <Text style={s.favMeal}>{summary.favorite_meal}</Text>
             </View>
           )}
-        </View>
+        </ReAnimated.View>
 
         {/* AI Insight */}
-        <View style={s.insightCard}>
+        <ReAnimated.View entering={FadeInDown.delay(250).duration(400)} style={s.insightCard}>
           <View style={s.insightHeader}>
             <Sparkles size={16} color={colors.green600} strokeWidth={2} />
             <Text style={s.insightTitle}>Análisis IA</Text>
@@ -171,7 +172,7 @@ export default function WeeklySummaryScreen() {
           ) : (
             <Text style={s.noInsight}>No se pudo generar el análisis</Text>
           )}
-        </View>
+        </ReAnimated.View>
 
         <View style={{ height: 40 }} />
       </ScrollView>

@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import {
   ChevronLeft,
   Package,
@@ -137,6 +138,7 @@ export default function AutopilotScreen() {
         meals: aiResponse.meals.length,
         shopping: aiResponse.shopping_needed?.length ?? 0,
       });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setStatus('done');
     } catch (e: any) {
       console.error('[Autopilot] Error:', e);
