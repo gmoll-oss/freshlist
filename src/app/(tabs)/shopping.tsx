@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { SkeletonCard } from '../../components/ui/Skeleton';
+import { SwipeToDelete } from '../../components/ui/SwipeToDelete';
 import { STORES } from '../../constants/stores';
 import { useShopping } from '../../hooks/useShopping';
 
@@ -178,15 +179,16 @@ export default function ShoppingScreen() {
                   <Text style={[s.sectionTitle, { color: colors.green600 }]}>DEL PLAN DE COMIDAS</Text>
                 </View>
                 {planItems.map((item) => (
-                  <ShoppingRow
-                    key={item.id}
-                    item={item}
-                    iconBg={colors.green50}
-                    iconColor={colors.green600}
-                    inPantry={isInPantry(item.name)}
-                    onToggle={() => handleToggle(item.id)}
-                    onRemove={() => handleRemove(item.id)}
-                  />
+                  <SwipeToDelete key={item.id} onDelete={() => handleRemove(item.id)}>
+                    <ShoppingRow
+                      item={item}
+                      iconBg={colors.green50}
+                      iconColor={colors.green600}
+                      inPantry={isInPantry(item.name)}
+                      onToggle={() => handleToggle(item.id)}
+                      onRemove={() => handleRemove(item.id)}
+                    />
+                  </SwipeToDelete>
                 ))}
               </View>
             )}
@@ -199,15 +201,16 @@ export default function ShoppingScreen() {
                   <Text style={[s.sectionTitle, { color: colors.violet400 }]}>FONDO DE COCINA</Text>
                 </View>
                 {stapleItems.map((item) => (
-                  <ShoppingRow
-                    key={item.id}
-                    item={item}
-                    iconBg={colors.violet50}
-                    iconColor={colors.violet400}
-                    inPantry={isInPantry(item.name)}
-                    onToggle={() => handleToggle(item.id)}
-                    onRemove={() => handleRemove(item.id)}
-                  />
+                  <SwipeToDelete key={item.id} onDelete={() => handleRemove(item.id)}>
+                    <ShoppingRow
+                      item={item}
+                      iconBg={colors.violet50}
+                      iconColor={colors.violet400}
+                      inPantry={isInPantry(item.name)}
+                      onToggle={() => handleToggle(item.id)}
+                      onRemove={() => handleRemove(item.id)}
+                    />
+                  </SwipeToDelete>
                 ))}
               </View>
             )}
@@ -220,15 +223,16 @@ export default function ShoppingScreen() {
                   <Text style={[s.sectionTitle, { color: colors.textSec }]}>AÑADIDOS MANUALMENTE</Text>
                 </View>
                 {manualItems.map((item) => (
-                  <ShoppingRow
-                    key={item.id}
-                    item={item}
-                    iconBg={colors.surface}
-                    iconColor={colors.textSec}
-                    inPantry={isInPantry(item.name)}
-                    onToggle={() => handleToggle(item.id)}
-                    onRemove={() => handleRemove(item.id)}
-                  />
+                  <SwipeToDelete key={item.id} onDelete={() => handleRemove(item.id)}>
+                    <ShoppingRow
+                      item={item}
+                      iconBg={colors.surface}
+                      iconColor={colors.textSec}
+                      inPantry={isInPantry(item.name)}
+                      onToggle={() => handleToggle(item.id)}
+                      onRemove={() => handleRemove(item.id)}
+                    />
+                  </SwipeToDelete>
                 ))}
               </View>
             )}

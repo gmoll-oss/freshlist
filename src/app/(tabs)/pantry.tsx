@@ -37,6 +37,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { SkeletonCard } from '../../components/ui/Skeleton';
+import { SwipeToDelete } from '../../components/ui/SwipeToDelete';
 import { fetchPantryItems, updatePantryItem, insertPantryItems, deletePantryItem } from '../../services/supabase/pantry';
 import { incrementUsed, incrementThrown } from '../../services/supabase/stats';
 import type { PantryItem } from '../../types';
@@ -236,28 +237,30 @@ export default function PantryTabScreen() {
     const info = freshnessInfo(item);
 
     return (
-      <TouchableOpacity style={s.row} onLongPress={() => openEditModal(item)} activeOpacity={0.7}>
-        <View style={s.iconBox}>
-          <Icon size={18} color={colors.green600} strokeWidth={2} />
-        </View>
-        <View style={s.rowContent}>
-          <Text style={s.name}>{item.name}</Text>
-          <View style={s.rowMeta}>
-            <Text style={s.qty}>{item.quantity} {item.unit}</Text>
-            <View style={[s.chip, { backgroundColor: info.bg }]}>
-              <Text style={[s.chipText, { color: info.color }]}>{info.label}</Text>
+      <SwipeToDelete onDelete={() => handleThrown(item.id)}>
+        <TouchableOpacity style={s.row} onLongPress={() => openEditModal(item)} activeOpacity={0.7}>
+          <View style={s.iconBox}>
+            <Icon size={18} color={colors.green600} strokeWidth={2} />
+          </View>
+          <View style={s.rowContent}>
+            <Text style={s.name}>{item.name}</Text>
+            <View style={s.rowMeta}>
+              <Text style={s.qty}>{item.quantity} {item.unit}</Text>
+              <View style={[s.chip, { backgroundColor: info.bg }]}>
+                <Text style={[s.chipText, { color: info.color }]}>{info.label}</Text>
+              </View>
             </View>
           </View>
-        </View>
-        <View style={s.actions}>
-          <TouchableOpacity style={s.usedBtn} onPress={() => handleUsed(item.id)}>
-            <Check size={14} color={colors.green600} strokeWidth={2.5} />
-          </TouchableOpacity>
-          <TouchableOpacity style={s.thrownBtn} onPress={() => handleThrown(item.id)}>
-            <Trash2 size={14} color={colors.red400} strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+          <View style={s.actions}>
+            <TouchableOpacity style={s.usedBtn} onPress={() => handleUsed(item.id)}>
+              <Check size={14} color={colors.green600} strokeWidth={2.5} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.thrownBtn} onPress={() => handleThrown(item.id)}>
+              <Trash2 size={14} color={colors.red400} strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </SwipeToDelete>
     );
   }
 
