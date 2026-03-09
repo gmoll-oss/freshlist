@@ -109,7 +109,7 @@ function addBoldSegments(text: string, lineIdx: number, parts: React.ReactNode[]
   }
 }
 
-function MessageBubble({ msg }: { msg: ChatMessage }) {
+const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.role === 'user';
   return (
     <View style={[s.bubbleWrap, isUser ? s.bubbleWrapUser : s.bubbleWrapAssistant]}>
@@ -120,7 +120,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       </View>
     </View>
   );
-}
+});
 
 export default function ChatScreen() {
   const router = useRouter();

@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert, Share, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2, PackageCheck, Sparkles, LayoutList } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -293,7 +293,7 @@ export default function ShoppingScreen() {
   );
 }
 
-function ShoppingRow({
+const ShoppingRow = React.memo(function ShoppingRow({
   item,
   iconBg,
   iconColor,
@@ -335,7 +335,7 @@ function ShoppingRow({
       </TouchableOpacity>
     </View>
   );
-}
+});
 
 const s = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
