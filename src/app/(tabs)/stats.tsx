@@ -1,6 +1,6 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Share, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Share, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { Trophy, CookingPot, Trash2, TrendingUp, Leaf, Star, Share2, Flame, Heart, ThumbsUp, ThumbsDown, BarChart3 } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
@@ -12,20 +12,29 @@ export default function StatsScreen() {
   const router = useRouter();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchUserStats()
-      .then(setStats)
-      .catch(() => setStats({
-        current_streak: 0,
-        longest_streak: 0,
-        total_saved_euros: 0,
-        total_products_saved: 0,
-        total_products_thrown: 0,
-        total_recipes_cooked: 0,
-      }))
-      .finally(() => setLoading(false));
+  const loadStats = useCallback(async () => {
+    try {
+      const data = await fetchUserStats();
+      setStats(data);
+    } catch (_) {
+      setStats({
+        current_streak: 0, longest_streak: 0, total_saved_euros: 0,
+        total_products_saved: 0, total_products_thrown: 0, total_recipes_cooked: 0,
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => { loadStats(); }, [loadStats]);
+
+  function onRefresh() {
+    setRefreshing(true);
+    loadStats();
+  }
 
   if (loading || !stats) {
     return (
@@ -37,7 +46,7 @@ export default function StatsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green600} />}>
         <View style={s.headerRow}>
           <Trophy size={15} color={colors.amber400} strokeWidth={2.2} />
           <Text style={s.headerLabel}>TUS LOGROS</Text>

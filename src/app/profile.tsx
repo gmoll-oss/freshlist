@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { ChevronLeft, LogOut, Users, UtensilsCrossed, Leaf, AlertTriangle, Timer, Target, Heart, Moon } from 'lucide-react-native';
+import { ChevronLeft, LogOut, Users, UtensilsCrossed, Leaf, AlertTriangle, Timer, Target, Heart, Moon, History, Crown } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { usePreferences } from '../hooks/usePreferences';
 import { useAuth } from '../hooks/useAuth';
@@ -149,6 +149,39 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* Scan history */}
+        <TouchableOpacity style={s.card} onPress={() => router.push('/scan-history' as any)}>
+          <View style={[s.cardIcon, { backgroundColor: colors.orange50 }]}>
+            <History size={18} color={colors.orange500} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.cardLabel}>Escaneos</Text>
+            <Text style={s.cardValue}>Historial de escaneos</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Family */}
+        <TouchableOpacity style={s.card} onPress={() => router.push('/family' as any)}>
+          <View style={[s.cardIcon, { backgroundColor: colors.violet50 }]}>
+            <Users size={18} color={colors.violet400} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.cardLabel}>Hogar</Text>
+            <Text style={s.cardValue}>Compartir en familia</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Premium */}
+        <TouchableOpacity style={s.premiumCard} onPress={() => router.push('/paywall' as any)}>
+          <View style={[s.cardIcon, { backgroundColor: '#FFFBEB' }]}>
+            <Crown size={18} color={colors.amber400} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.cardLabel}>Suscripcion</Text>
+            <Text style={[s.cardValue, { color: colors.amber400 }]}>FreshList Premium</Text>
+          </View>
+        </TouchableOpacity>
+
         {/* Sign out */}
         <TouchableOpacity style={s.logoutBtn} onPress={handleSignOut}>
           <LogOut size={18} color={colors.red500} strokeWidth={2} />
@@ -180,6 +213,10 @@ const s = StyleSheet.create({
   cardIcon: { width: 40, height: 40, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center' },
   cardLabel: { fontSize: 11, color: colors.textMuted, fontFamily: fonts.medium },
   cardValue: { fontSize: 15, fontFamily: fonts.bold, color: colors.text, marginTop: 2 },
+  premiumCard: {
+    backgroundColor: '#FFFBEB', borderRadius: radius.lg, padding: 16,
+    borderWidth: 1, borderColor: '#FDE68A', flexDirection: 'row', alignItems: 'center', gap: 14,
+  },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 16, marginTop: 12, backgroundColor: colors.red50,

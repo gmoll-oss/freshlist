@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -11,13 +11,18 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const [favorites, setFavorites] = useState<RecipeFavorite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchFavorites()
-      .then(setFavorites)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  async function loadFavorites() {
+    try {
+      const data = await fetchFavorites();
+      setFavorites(data);
+    } catch (_) {}
+    setLoading(false);
+    setRefreshing(false);
+  }
+
+  useEffect(() => { loadFavorites(); }, []);
 
   async function handleRemove(id: string) {
     await deleteFavorite(id);
@@ -63,7 +68,7 @@ export default function FavoritesScreen() {
           <Text style={s.emptySub}>Guarda recetas que te gusten pulsando el corazon al cocinar</Text>
         </View>
       ) : (
-        <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadFavorites(); }} tintColor={colors.green600} />}>
           {favorites.map((fav) => (
             <View key={fav.id} style={s.card}>
               <View style={s.cardTop}>

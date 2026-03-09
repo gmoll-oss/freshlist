@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { fetchUserStats } from '../services/supabase/stats';
 import { getTodaysMeals } from '../services/supabase/mealPlans';
 import { fetchPantryItems } from '../services/supabase/pantry';
+import { cacheSet, cacheGet } from '../services/offline/cache';
 import type { UserStats, MealPlan, PantryItem } from '../types';
 
 export interface HomeData {
@@ -63,7 +64,14 @@ export function useHomeData() {
         return days >= 0 && days <= 3;
       }).length;
 
-      setData({ stats, todayMeals, expiringItems, pantryCount: activeItems.length, expiringSoonCount });
+      const homeData = { stats, todayMeals, expiringItems, pantryCount: activeItems.length, expiringSoonCount };
+      setData(homeData);
+      // Cache for offline
+      cacheSet('homeData', homeData).catch(() => {});
+    } catch {
+      // Try loading from cache if network fails
+      const cached = await cacheGet<HomeData>('homeData');
+      if (cached) setData(cached);
     } finally {
       setLoading(false);
     }

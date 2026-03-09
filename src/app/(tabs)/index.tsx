@@ -1,8 +1,8 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Flame, CookingPot, ChefHat, Timer, UtensilsCrossed, ChevronRight, AlertTriangle, Receipt, Package, Sparkles, ScanLine, MessageCircle, ArrowRight, Check, Coffee, Apple } from 'lucide-react-native';
+import { Flame, CookingPot, ChefHat, Timer, UtensilsCrossed, ChevronRight, AlertTriangle, Receipt, Package, Sparkles, ScanLine, MessageCircle, ArrowRight, Check, Coffee, Apple, WifiOff } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
@@ -10,6 +10,7 @@ import { useHomeData } from '../../hooks/useHomeData';
 import { setCurrentMeal } from '../../services/mealPlan/mealPlanStore';
 import { updatePantryItem } from '../../services/supabase/pantry';
 import { incrementUsed } from '../../services/supabase/stats';
+import { useOffline } from '../../hooks/useOffline';
 import type { MealType } from '../../types';
 
 function getGreeting(): string {
@@ -47,7 +48,15 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { stats, todayMeals, expiringItems, pantryCount, expiringSoonCount, loading, load } = useHomeData();
+  const { isOffline } = useOffline();
   const [usedIds, setUsedIds] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -67,7 +76,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green600} />}>
         {/* Header */}
         <View style={s.header}>
           <View>
@@ -78,6 +87,14 @@ export default function HomeScreen() {
             <Text style={s.avatarText}>{initial}</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Offline banner */}
+        {isOffline && (
+          <View style={s.offlineBanner}>
+            <WifiOff size={14} color={colors.orange500} strokeWidth={2} />
+            <Text style={s.offlineText}>Sin conexion — mostrando datos en cache</Text>
+          </View>
+        )}
 
         {/* 1. Alerta urgente — con boton Usado */}
         {expiringItems.filter((p) => !usedIds.has(p.id)).length > 0 && (
@@ -242,6 +259,14 @@ const s = StyleSheet.create({
   name: { fontSize: 22, fontFamily: fonts.black, color: colors.text, marginTop: 2 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.green500, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: 'white', fontFamily: fonts.bold, fontSize: 15 },
+
+  // Offline
+  offlineBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.orange50, borderRadius: radius.md, padding: 10,
+    borderWidth: 1, borderColor: colors.orange100, marginBottom: spacing.md,
+  },
+  offlineText: { fontSize: 12, fontFamily: fonts.medium, color: colors.orange500 },
 
   // Urgent alert
   urgentCard: { backgroundColor: colors.red50, borderRadius: radius.lg, padding: 14, borderWidth: 1, borderColor: colors.red100, marginBottom: spacing.md },

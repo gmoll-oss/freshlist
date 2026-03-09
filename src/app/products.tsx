@@ -31,6 +31,7 @@ import {
 } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { getScanResult, clearScanResult } from '../services/scan/scanStore';
+import { addScanToHistory } from '../services/scan/scanHistory';
 import { insertPantryItems } from '../services/supabase/pantry';
 import type { PantryItem } from '../types';
 
@@ -92,6 +93,12 @@ export default function ProductsScreen() {
     try {
       await insertPantryItems(products);
       clearScanResult();
+      await addScanToHistory({
+        mode: storeName ? 'ticket' : 'fridge',
+        store: storeName,
+        itemCount: products.length,
+        itemNames: products.map((p) => p.name),
+      }).catch(() => {});
       setSaved(true);
     } catch (e: any) {
       Alert.alert('Error', e.message ?? 'No se pudieron guardar los productos');

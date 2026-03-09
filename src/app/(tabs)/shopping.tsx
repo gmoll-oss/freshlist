@@ -1,13 +1,15 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert, Share } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert, Share, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2, PackageCheck } from 'lucide-react-native';
+import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2, PackageCheck, Sparkles } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { STORES } from '../../constants/stores';
 import { useShopping } from '../../hooks/useShopping';
 
 export default function ShoppingScreen() {
+  const router = useRouter();
   const {
     items,
     allItems,
@@ -24,6 +26,13 @@ export default function ShoppingScreen() {
   } = useShopping();
 
   const [newItemText, setNewItemText] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -84,7 +93,7 @@ export default function ShoppingScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green600} />}>
         <View style={s.header}>
           <View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -136,8 +145,15 @@ export default function ShoppingScreen() {
           <ActivityIndicator size="large" color={colors.green600} style={{ marginTop: 40 }} />
         ) : items.length === 0 ? (
           <View style={s.emptyBox}>
+            <View style={s.emptyIconBox}>
+              <ShoppingCart size={36} color={colors.green400} strokeWidth={1.5} />
+            </View>
             <Text style={s.emptyText}>Lista vacía</Text>
-            <Text style={s.emptyHint}>Añade productos manualmente o genera un plan de comidas</Text>
+            <Text style={s.emptyHint}>Añade productos manualmente o genera un plan de comidas para crear tu lista</Text>
+            <TouchableOpacity style={s.emptyCta} onPress={() => router.push('/plan')}>
+              <Sparkles size={14} color="white" strokeWidth={2.5} />
+              <Text style={s.emptyCtaText}>Generar plan</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <>
@@ -343,6 +359,9 @@ const s = StyleSheet.create({
   },
   pantryBadgeText: { fontSize: 9, fontFamily: fonts.bold, color: colors.green600 },
   emptyBox: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 16, fontFamily: fonts.bold, color: colors.textSec },
+  emptyIconBox: { width: 72, height: 72, borderRadius: 20, backgroundColor: colors.green50, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  emptyText: { fontSize: 18, fontFamily: fonts.bold, color: colors.textSec },
   emptyHint: { fontSize: 13, fontFamily: fonts.regular, color: colors.textMuted, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
+  emptyCta: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.green600, borderRadius: radius.md, paddingHorizontal: 20, paddingVertical: 12, marginTop: 16 },
+  emptyCtaText: { fontSize: 13, fontFamily: fonts.bold, color: 'white' },
 });

@@ -237,8 +237,15 @@ export default function PantryTabScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green600} />}
           ListEmptyComponent={
             <View style={s.center}>
+              <View style={s.emptyIconBox}>
+                <Package size={36} color={colors.green400} strokeWidth={1.5} />
+              </View>
               <Text style={s.empty}>Tu despensa está vacía</Text>
               <Text style={s.emptyHint}>Escanea un ticket o foto de nevera para añadir productos</Text>
+              <TouchableOpacity style={s.emptyCta} onPress={() => router.push('/(tabs)/scan' as any)}>
+                <ScanLine size={14} color="white" strokeWidth={2.5} />
+                <Text style={s.emptyCtaText}>Escanear ahora</Text>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -348,6 +355,9 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
-  empty: { fontSize: 16, fontFamily: fonts.bold, color: colors.textSec },
+  emptyIconBox: { width: 72, height: 72, borderRadius: 20, backgroundColor: colors.green50, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  empty: { fontSize: 18, fontFamily: fonts.bold, color: colors.textSec },
   emptyHint: { fontSize: 13, fontFamily: fonts.regular, color: colors.textMuted, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
+  emptyCta: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.green600, borderRadius: radius.md, paddingHorizontal: 20, paddingVertical: 12, marginTop: 16 },
+  emptyCtaText: { fontSize: 13, fontFamily: fonts.bold, color: 'white' },
 });
