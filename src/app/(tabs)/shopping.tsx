@@ -107,6 +107,13 @@ export default function ShoppingScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Progress bar */}
+        {totalCount > 0 && (
+          <View style={s.progressBar}>
+            <View style={[s.progressFill, { width: `${Math.round((purchasedCount / totalCount) * 100)}%` }]} />
+          </View>
+        )}
+
         {/* Add item input */}
         <View style={s.addRow}>
           <TextInput
@@ -348,6 +355,8 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   clearText: { fontSize: 12, fontFamily: fonts.bold, color: colors.red400 },
+  progressBar: { height: 6, backgroundColor: colors.surface, borderRadius: 3, marginBottom: 14, overflow: 'hidden' as const },
+  progressFill: { height: 6, backgroundColor: colors.green500, borderRadius: 3 },
   pantryBadge: {
     flexDirection: 'row',
     alignItems: 'center',

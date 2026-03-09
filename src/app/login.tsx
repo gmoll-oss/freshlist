@@ -1,9 +1,16 @@
 import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Leaf } from 'lucide-react-native';
+import { Leaf, ScanLine, Sparkles, ChefHat } from 'lucide-react-native';
 import { useState } from 'react';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
+
+const FEATURES = [
+  { Icon: ScanLine, text: 'Escanea tu ticket y llena tu despensa' },
+  { Icon: Sparkles, text: 'IA que planifica tus comidas' },
+  { Icon: ChefHat, text: 'Cocina sin desperdiciar nada' },
+];
 
 export default function LoginScreen() {
   const { signInWithGoogle, signInWithApple, signInWithEmail, skipAuth } = useAuth();
@@ -52,14 +59,26 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={s.container}>
       <View style={s.content}>
-        <View style={s.logoBox}>
-          <Leaf size={40} color={colors.green600} strokeWidth={2} />
+        <Animated.View entering={FadeInDown.delay(100).duration(500)} style={s.logoBox}>
+          <View style={s.logoCircle}>
+            <Leaf size={44} color={colors.green600} strokeWidth={1.8} />
+          </View>
           <Text style={s.brand}>FreshList</Text>
           <Text style={s.tagline}>Tu despensa inteligente</Text>
-        </View>
+        </Animated.View>
 
-        <View style={s.buttons}>
-          {/* Email/password */}
+        <Animated.View entering={FadeInDown.delay(300).duration(500)} style={s.features}>
+          {FEATURES.map((f, i) => (
+            <View key={i} style={s.featureRow}>
+              <View style={s.featureIcon}>
+                <f.Icon size={16} color={colors.green600} strokeWidth={2} />
+              </View>
+              <Text style={s.featureText}>{f.text}</Text>
+            </View>
+          ))}
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(500).duration(500)} style={s.buttons}>
           <TextInput
             style={s.input}
             placeholder="Email"
@@ -91,7 +110,6 @@ export default function LoginScreen() {
             <View style={s.dividerLine} />
           </View>
 
-          {/* OAuth */}
           <TouchableOpacity style={s.googleBtn} onPress={handleGoogle} disabled={busy}>
             <Text style={s.googleText}>Continuar con Google</Text>
           </TouchableOpacity>
@@ -103,7 +121,7 @@ export default function LoginScreen() {
           )}
 
           {error && <Text style={s.error}>{error}</Text>}
-        </View>
+        </Animated.View>
 
         <TouchableOpacity onPress={skipAuth} style={s.skipBtn}>
           <Text style={s.skipText}>Continuar sin cuenta</Text>
@@ -120,76 +138,41 @@ export default function LoginScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
-  logoBox: { alignItems: 'center', marginBottom: 40 },
-  brand: {
-    fontSize: 32,
-    fontFamily: fonts.black,
-    color: colors.text,
-    marginTop: spacing.md,
+  logoBox: { alignItems: 'center', marginBottom: 24 },
+  logoCircle: {
+    width: 88, height: 88, borderRadius: 28, backgroundColor: colors.green50,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: colors.green200,
   },
-  tagline: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
+  brand: { fontSize: 34, fontFamily: fonts.black, color: colors.text, marginTop: 12 },
+  tagline: { fontSize: 14, fontFamily: fonts.regular, color: colors.textMuted, marginTop: 4 },
+  features: { width: '100%', gap: 8, marginBottom: 28 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  featureIcon: {
+    width: 32, height: 32, borderRadius: 8, backgroundColor: colors.green50,
+    justifyContent: 'center', alignItems: 'center',
   },
+  featureText: { fontSize: 13, fontFamily: fonts.medium, color: colors.textSec },
   buttons: { width: '100%', gap: 10 },
   input: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: colors.text,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.md, paddingVertical: 14, paddingHorizontal: 16,
+    fontSize: 14, fontFamily: fonts.regular, color: colors.text,
   },
-  emailBtn: {
-    backgroundColor: colors.green600,
-    borderRadius: radius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
+  emailBtn: { backgroundColor: colors.green600, borderRadius: radius.md, paddingVertical: 16, alignItems: 'center' },
   emailText: { fontSize: 15, fontFamily: fonts.bold, color: '#fff' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 4 },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
   dividerText: { fontSize: 12, fontFamily: fonts.regular, color: colors.textMuted },
   googleBtn: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.md, paddingVertical: 16, alignItems: 'center',
   },
   googleText: { fontSize: 15, fontFamily: fonts.bold, color: colors.text },
-  appleBtn: {
-    backgroundColor: '#000',
-    borderRadius: radius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
+  appleBtn: { backgroundColor: '#000', borderRadius: radius.md, paddingVertical: 16, alignItems: 'center' },
   appleText: { fontSize: 15, fontFamily: fonts.bold, color: '#fff' },
-  error: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: colors.red500,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
+  error: { fontSize: 12, fontFamily: fonts.regular, color: colors.red500, textAlign: 'center', marginTop: spacing.sm },
   skipBtn: { marginTop: 20 },
-  skipText: {
-    fontSize: 13,
-    fontFamily: fonts.medium,
-    color: colors.textSec,
-    textDecorationLine: 'underline',
-  },
-  footer: {
-    fontSize: 11,
-    fontFamily: fonts.regular,
-    color: colors.textDim,
-    textAlign: 'center',
-    marginTop: 20,
-  },
+  skipText: { fontSize: 13, fontFamily: fonts.medium, color: colors.textSec, textDecorationLine: 'underline' },
+  footer: { fontSize: 11, fontFamily: fonts.regular, color: colors.textDim, textAlign: 'center', marginTop: 20 },
 });

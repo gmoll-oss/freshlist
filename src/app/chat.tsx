@@ -3,7 +3,7 @@ import {
   KeyboardAvoidingView, Platform, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Send, Trash2 } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../constants/theme';
@@ -53,13 +53,69 @@ function ThinkingDots() {
   );
 }
 
+function renderFormattedText(text: string, isUser: boolean) {
+  // Split by **bold** markers and bullet points
+  const baseStyle = isUser ? s.bubbleTextUser : s.bubbleTextAssistant;
+  const parts: React.ReactNode[] = [];
+  const lines = text.split('\n');
+
+  lines.forEach((line, li) => {
+    if (li > 0) parts.push(<Text key={`br-${li}`}>{'\n'}</Text>);
+
+    // Bullet points
+    const trimmed = line.trimStart();
+    const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('• ') || /^\d+\.\s/.test(trimmed);
+    if (isBullet && !isUser) {
+      const bulletText = trimmed.replace(/^[-•]\s|^\d+\.\s/, '');
+      parts.push(
+        <Text key={`bullet-${li}`} style={baseStyle}>
+          {'  '}
+          <Text style={{ color: colors.green600 }}>{'•'}</Text>
+          {' '}
+        </Text>,
+      );
+      // Process bold within bullet
+      addBoldSegments(bulletText, li, parts, isUser);
+      return;
+    }
+
+    // Regular line with possible bold
+    addBoldSegments(line, li, parts, isUser);
+  });
+
+  return parts;
+}
+
+function addBoldSegments(text: string, lineIdx: number, parts: React.ReactNode[], isUser: boolean) {
+  const baseStyle = isUser ? s.bubbleTextUser : s.bubbleTextAssistant;
+  const boldRegex = /\*\*(.+?)\*\*/g;
+  let lastIdx = 0;
+  let match;
+  let segIdx = 0;
+
+  while ((match = boldRegex.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      parts.push(<Text key={`t-${lineIdx}-${segIdx++}`} style={baseStyle}>{text.slice(lastIdx, match.index)}</Text>);
+    }
+    parts.push(
+      <Text key={`b-${lineIdx}-${segIdx++}`} style={[baseStyle, { fontFamily: fonts.bold }]}>
+        {match[1]}
+      </Text>,
+    );
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < text.length) {
+    parts.push(<Text key={`t-${lineIdx}-${segIdx}`} style={baseStyle}>{text.slice(lastIdx)}</Text>);
+  }
+}
+
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.role === 'user';
   return (
     <View style={[s.bubbleWrap, isUser ? s.bubbleWrapUser : s.bubbleWrapAssistant]}>
       <View style={[s.bubble, isUser ? s.bubbleUser : s.bubbleAssistant]}>
         <Text style={[s.bubbleText, isUser ? s.bubbleTextUser : s.bubbleTextAssistant]}>
-          {msg.content}
+          {renderFormattedText(msg.content, isUser)}
         </Text>
       </View>
     </View>
