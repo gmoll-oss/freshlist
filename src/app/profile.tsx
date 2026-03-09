@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { ChevronLeft, LogOut, Users, UtensilsCrossed, Leaf, AlertTriangle, Timer, Target, Heart, Moon, History, Crown } from 'lucide-react-native';
+import { ChevronLeft, LogOut, Users, UtensilsCrossed, Leaf, AlertTriangle, Timer, Target, Heart, Moon, History, Crown, Bell } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { usePreferences } from '../hooks/usePreferences';
 import { useAuth } from '../hooks/useAuth';
@@ -146,6 +146,17 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Text style={s.cardLabel}>Recetas</Text>
             <Text style={s.cardValue}>Mis recetas favoritas</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Notifications */}
+        <TouchableOpacity style={s.card} onPress={() => router.push('/notification-settings' as any)}>
+          <View style={[s.cardIcon, { backgroundColor: colors.green50 }]}>
+            <Bell size={18} color={colors.green600} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.cardLabel}>Notificaciones</Text>
+            <Text style={s.cardValue}>Configurar alertas</Text>
           </View>
         </TouchableOpacity>
 
