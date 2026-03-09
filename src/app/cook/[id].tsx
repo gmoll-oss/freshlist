@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { ChefHat, ChevronLeft, Check, Flame, Leaf, CookingPot, UtensilsCrossed, Timer, Volume2, X, Heart } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { getCurrentMeal, clearCurrentMeal } from '../../services/mealPlan/mealPlanStore';
 import { markMealCooked } from '../../services/supabase/mealPlans';
@@ -50,10 +51,11 @@ export default function CookScreen() {
     try {
       const nowFav = await toggleFavorite(meal);
       setIsFav(nowFav);
-    } catch (_) {}
+    } catch (_e) { /* toggle is best-effort */ }
   }
 
   async function handleDone() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     let consumed = 0;
     const ingredientNames = meal!.ingredients.map((i) => i.name);
     try {
@@ -64,8 +66,8 @@ export default function CookScreen() {
       for (let i = 0; i < consumed; i++) {
         await incrementUsed().catch(() => {});
       }
-    } catch (_) {
-      // best effort
+    } catch (e: any) {
+      Alert.alert('Aviso', e.message ?? 'No se pudo actualizar algunos datos, pero tu receta está lista');
     }
     clearCurrentMeal();
     if (consumed > 0) {

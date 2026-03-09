@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Flame, CookingPot, ChefHat, Timer, UtensilsCrossed, ChevronRight, AlertTriangle, Receipt, Package, Sparkles, ScanLine, MessageCircle, ArrowRight, Check, Coffee, Apple } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
 import { useHomeData } from '../../hooks/useHomeData';
@@ -54,6 +55,7 @@ export default function HomeScreen() {
   const initial = name.charAt(0).toUpperCase();
 
   async function handleMarkUsed(id: string) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
       await updatePantryItem(id, { status: 'used' });
       await incrementUsed();

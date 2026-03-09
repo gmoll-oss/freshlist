@@ -6,6 +6,7 @@ import {
   clearPurchased as clearPurchasedApi,
   deleteShoppingItem,
 } from '../services/supabase/shopping';
+import { fetchPantryItems } from '../services/supabase/pantry';
 import type { ShoppingItem } from '../types';
 
 export function useShopping() {
@@ -13,13 +14,23 @@ export function useShopping() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterStore, setFilterStore] = useState<string | null>(null);
+  const [pantryNames, setPantryNames] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchShoppingItems();
+      const [data, pantryItems] = await Promise.all([
+        fetchShoppingItems(),
+        fetchPantryItems().catch(() => []),
+      ]);
       setItems(data);
+      const activeNames = new Set(
+        pantryItems
+          .filter((p) => p.status === 'fresh' || p.status === 'expiring')
+          .map((p) => p.name.toLowerCase()),
+      );
+      setPantryNames(activeNames);
     } catch (e: any) {
       setError(e.message ?? 'Error cargando lista');
     } finally {
@@ -79,9 +90,21 @@ export function useShopping() {
     ? items.filter((i) => i.store?.toLowerCase() === filterStore.toLowerCase())
     : items;
 
+  const isInPantry = useCallback(
+    (name: string) => {
+      const lower = name.toLowerCase();
+      for (const pn of pantryNames) {
+        if (pn.includes(lower) || lower.includes(pn)) return true;
+      }
+      return false;
+    },
+    [pantryNames],
+  );
+
   return {
     items: filtered,
     allItems: items,
+    isInPantry,
     loading,
     error,
     filterStore,

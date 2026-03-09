@@ -29,6 +29,7 @@ import {
   ScanLine,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { fetchPantryItems, updatePantryItem, insertPantryItems } from '../../services/supabase/pantry';
 import { incrementUsed, incrementThrown } from '../../services/supabase/stats';
@@ -91,6 +92,7 @@ export default function PantryTabScreen() {
   }
 
   async function handleUsed(id: string) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
       await updatePantryItem(id, { status: 'used' });
       await incrementUsed();
@@ -101,6 +103,7 @@ export default function PantryTabScreen() {
   }
 
   async function handleThrown(id: string) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     try {
       await updatePantryItem(id, { status: 'thrown' });
       await incrementThrown();

@@ -1,7 +1,8 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2 } from 'lucide-react-native';
+import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2, PackageCheck } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { STORES } from '../../constants/stores';
 import { useShopping } from '../../hooks/useShopping';
@@ -19,6 +20,7 @@ export default function ShoppingScreen() {
     togglePurchased,
     removeItem,
     clearPurchased,
+    isInPantry,
   } = useShopping();
 
   const [newItemText, setNewItemText] = useState('');
@@ -32,8 +34,19 @@ export default function ShoppingScreen() {
   async function handleAdd() {
     const name = newItemText.trim();
     if (!name) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await addItem(name);
     setNewItemText('');
+  }
+
+  async function handleToggle(id: string) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    togglePurchased(id);
+  }
+
+  async function handleRemove(id: string) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    removeItem(id);
   }
 
   const planItems = items.filter((i) => i.source === 'ai_suggestion');
@@ -141,8 +154,9 @@ export default function ShoppingScreen() {
                     item={item}
                     iconBg={colors.green50}
                     iconColor={colors.green600}
-                    onToggle={() => togglePurchased(item.id)}
-                    onRemove={() => removeItem(item.id)}
+                    inPantry={isInPantry(item.name)}
+                    onToggle={() => handleToggle(item.id)}
+                    onRemove={() => handleRemove(item.id)}
                   />
                 ))}
               </View>
@@ -161,8 +175,9 @@ export default function ShoppingScreen() {
                     item={item}
                     iconBg={colors.violet50}
                     iconColor={colors.violet400}
-                    onToggle={() => togglePurchased(item.id)}
-                    onRemove={() => removeItem(item.id)}
+                    inPantry={isInPantry(item.name)}
+                    onToggle={() => handleToggle(item.id)}
+                    onRemove={() => handleRemove(item.id)}
                   />
                 ))}
               </View>
@@ -181,8 +196,9 @@ export default function ShoppingScreen() {
                     item={item}
                     iconBg={colors.surface}
                     iconColor={colors.textSec}
-                    onToggle={() => togglePurchased(item.id)}
-                    onRemove={() => removeItem(item.id)}
+                    inPantry={isInPantry(item.name)}
+                    onToggle={() => handleToggle(item.id)}
+                    onRemove={() => handleRemove(item.id)}
                   />
                 ))}
               </View>
@@ -208,12 +224,14 @@ function ShoppingRow({
   item,
   iconBg,
   iconColor,
+  inPantry,
   onToggle,
   onRemove,
 }: {
   item: { id: string; name: string; quantity: number; unit: string; purchased: boolean; store?: string };
   iconBg: string;
   iconColor: string;
+  inPantry?: boolean;
   onToggle: () => void;
   onRemove: () => void;
 }) {
@@ -224,7 +242,15 @@ function ShoppingRow({
           {item.purchased && <Check size={12} color="white" strokeWidth={3} />}
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[s.itemName, item.purchased && s.itemNameDone]}>{item.name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={[s.itemName, item.purchased && s.itemNameDone]}>{item.name}</Text>
+            {inPantry && !item.purchased && (
+              <View style={s.pantryBadge}>
+                <PackageCheck size={10} color={colors.green600} strokeWidth={2.5} />
+                <Text style={s.pantryBadgeText}>Ya lo tienes</Text>
+              </View>
+            )}
+          </View>
           <Text style={s.itemMeta}>
             {item.quantity} {item.unit}
             {item.store ? ` · ${item.store}` : ''}
@@ -306,6 +332,16 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   clearText: { fontSize: 12, fontFamily: fonts.bold, color: colors.red400 },
+  pantryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.green50,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  pantryBadgeText: { fontSize: 9, fontFamily: fonts.bold, color: colors.green600 },
   emptyBox: { alignItems: 'center', paddingTop: 60 },
   emptyText: { fontSize: 16, fontFamily: fonts.bold, color: colors.textSec },
   emptyHint: { fontSize: 13, fontFamily: fonts.regular, color: colors.textMuted, marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
