@@ -1,18 +1,53 @@
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { Camera, Receipt, Sparkles, Image, RefreshCw } from 'lucide-react-native';
+import { Camera, Receipt, Sparkles, Image, RefreshCw, Barcode, X } from 'lucide-react-native';
+import { CameraView } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { useScan } from '../../hooks/useScan';
 import { fetchPantryItems } from '../../services/supabase/pantry';
+import { lookupBarcode } from '../../services/barcode/barcodeService';
 
-type ScanMode = 'ticket' | 'fridge';
+type ScanMode = 'ticket' | 'fridge' | 'barcode';
 
 export default function ScanScreen() {
   const [mode, setMode] = useState<ScanMode>('ticket');
+  const [barcodeActive, setBarcodeActive] = useState(false);
+  const [barcodeProcessing, setBarcodeProcessing] = useState(false);
+  const [lastScannedCode, setLastScannedCode] = useState('');
   const scan = useScan();
   const router = useRouter();
+
+  const handleBarcodeScanned = useCallback(async ({ data, type }: { data: string; type: string }) => {
+    if (barcodeProcessing || data === lastScannedCode) return;
+    setBarcodeProcessing(true);
+    setLastScannedCode(data);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      const product = await lookupBarcode(data);
+      if (product) {
+        setBarcodeActive(false);
+        // Push to products screen with the barcode result
+        scan.setBarcodeResult(product);
+        router.push('/products');
+      } else {
+        Alert.alert(
+          'Producto no encontrado',
+          `Codigo: ${data}\nNo encontramos este producto en nuestra base de datos. Puedes anadirlo manualmente.`,
+          [
+            { text: 'Anadir manual', onPress: () => { setBarcodeActive(false); router.push('/products'); } },
+            { text: 'Seguir escaneando', onPress: () => { setLastScannedCode(''); setBarcodeProcessing(false); } },
+          ],
+        );
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo buscar el producto');
+    } finally {
+      setBarcodeProcessing(false);
+    }
+  }, [barcodeProcessing, lastScannedCode, scan, router]);
 
   /** After capturing a fridge photo, check if user wants to update inventory or add new */
   async function handleFridgeResult(base64: string) {
@@ -77,6 +112,7 @@ export default function ScanScreen() {
   }
 
   async function handleRetry() {
+    if (mode === 'barcode') return; // barcode has its own flow
     const result = await scan.retry(mode);
     if (result) router.push('/products');
   }
@@ -85,7 +121,9 @@ export default function ScanScreen() {
 
   const viewfinderText = mode === 'ticket'
     ? 'Encuadra el ticket completo'
-    : 'Foto de tu nevera abierta';
+    : mode === 'fridge'
+    ? 'Foto de tu nevera abierta'
+    : 'Apunta al codigo de barras';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -96,7 +134,8 @@ export default function ScanScreen() {
         <View style={s.toggle}>
           {([
             { key: 'ticket' as ScanMode, icon: Receipt, label: 'Ticket' },
-            { key: 'fridge' as ScanMode, icon: Camera, label: 'Nevera / Despensa' },
+            { key: 'fridge' as ScanMode, icon: Camera, label: 'Nevera' },
+            { key: 'barcode' as ScanMode, icon: Barcode, label: 'Producto' },
           ]).map((m) => (
             <TouchableOpacity
               key={m.key}
@@ -111,38 +150,73 @@ export default function ScanScreen() {
         </View>
 
         {/* Camera area */}
-        <View style={s.camera}>
-          {scan.status === 'processing' ? (
-            <View style={s.processingBox}>
-              <ActivityIndicator size="large" color={colors.green400} />
-              <Text style={s.processingText}>Analizando imagen...</Text>
-            </View>
-          ) : scan.status === 'error' ? (
-            <View style={s.processingBox}>
-              <Text style={s.errorText}>{scan.error}</Text>
-              <TouchableOpacity style={s.retryBtn} onPress={handleRetry}>
-                <RefreshCw size={16} color="white" strokeWidth={2.2} />
-                <Text style={s.retryText}>Reintentar</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={s.viewfinder}>
-              <Camera size={28} color={colors.green400} style={{ opacity: 0.7 }} strokeWidth={1.8} />
-              <Text style={s.viewfinderText}>{viewfinderText}</Text>
-            </View>
-          )}
-        </View>
+        {mode === 'barcode' && barcodeActive ? (
+          <View style={s.camera}>
+            <CameraView
+              style={StyleSheet.absoluteFillObject}
+              barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39'] }}
+              onBarcodeScanned={handleBarcodeScanned}
+            />
+            {barcodeProcessing && (
+              <View style={[s.processingBox, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={colors.green400} />
+                <Text style={s.processingText}>Buscando producto...</Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={s.camera}>
+            {scan.status === 'processing' ? (
+              <View style={s.processingBox}>
+                <ActivityIndicator size="large" color={colors.green400} />
+                <Text style={s.processingText}>Analizando imagen...</Text>
+              </View>
+            ) : scan.status === 'error' ? (
+              <View style={s.processingBox}>
+                <Text style={s.errorText}>{scan.error}</Text>
+                <TouchableOpacity style={s.retryBtn} onPress={handleRetry}>
+                  <RefreshCw size={16} color="white" strokeWidth={2.2} />
+                  <Text style={s.retryText}>Reintentar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={s.viewfinder}>
+                {mode === 'barcode'
+                  ? <Barcode size={28} color={colors.green400} style={{ opacity: 0.7 }} strokeWidth={1.8} />
+                  : <Camera size={28} color={colors.green400} style={{ opacity: 0.7 }} strokeWidth={1.8} />
+                }
+                <Text style={s.viewfinderText}>{viewfinderText}</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Capture + Gallery */}
-        <View style={s.captureRow}>
-          <TouchableOpacity style={s.galleryBtn} onPress={handleGallery} disabled={isWorking}>
-            <Image size={22} color={colors.textSec} strokeWidth={2} />
-          </TouchableOpacity>
-          <TouchableOpacity style={s.captureOuter} onPress={handleCapture} disabled={isWorking}>
-            <View style={[s.captureInner, isWorking && { opacity: 0.4 }]} />
-          </TouchableOpacity>
-          <View style={{ width: 44 }} />
-        </View>
+        {mode === 'barcode' ? (
+          <View style={s.captureRow}>
+            <TouchableOpacity
+              style={[s.captureOuter, barcodeActive && { borderColor: colors.red400 }]}
+              onPress={() => { setBarcodeActive(!barcodeActive); setLastScannedCode(''); }}
+            >
+              <View style={[s.captureInner, barcodeActive && { backgroundColor: colors.red400 }]}>
+                {barcodeActive
+                  ? <X size={24} color="white" strokeWidth={2.5} />
+                  : <Barcode size={24} color="white" strokeWidth={2} />
+                }
+              </View>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={s.captureRow}>
+            <TouchableOpacity style={s.galleryBtn} onPress={handleGallery} disabled={isWorking}>
+              <Image size={22} color={colors.textSec} strokeWidth={2} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.captureOuter} onPress={handleCapture} disabled={isWorking}>
+              <View style={[s.captureInner, isWorking && { opacity: 0.4 }]} />
+            </TouchableOpacity>
+            <View style={{ width: 44 }} />
+          </View>
+        )}
 
         {/* Tips */}
         <View style={s.tipsCard}>
@@ -152,7 +226,9 @@ export default function ScanScreen() {
           </View>
           {(mode === 'ticket'
             ? ['Ticket completo en la foto', 'Buena iluminacion, sin sombras', 'Superficie plana, sin arrugas']
-            : ['Abre la nevera entera', 'Buena luz, sin reflejos', 'Incluye todos los estantes']
+            : mode === 'fridge'
+            ? ['Abre la nevera entera', 'Buena luz, sin reflejos', 'Incluye todos los estantes']
+            : ['Acerca el codigo de barras a la camara', 'Funciona con EAN-13, EAN-8 y UPC', 'Si no lo encuentra, anadelo manualmente']
           ).map((t, i) => (
             <Text key={i} style={s.tip}>• {t}</Text>
           ))}
@@ -199,7 +275,7 @@ const s = StyleSheet.create({
     width: 68, height: 68, borderRadius: 34, borderWidth: 4, borderColor: colors.green500,
     justifyContent: 'center', alignItems: 'center',
   },
-  captureInner: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.green500 },
+  captureInner: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.green500, justifyContent: 'center', alignItems: 'center' },
   tipsCard: { backgroundColor: colors.card, borderRadius: radius.md, padding: 14, borderWidth: 1, borderColor: colors.border },
   tipsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   tipsTitle: { fontSize: 12, fontFamily: fonts.medium, color: colors.textSec },

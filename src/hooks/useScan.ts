@@ -4,6 +4,7 @@ import { scanTicket, scanFridge, rescanFridge } from '../services/ai/ocr';
 import { setScanResult, clearScanResult, setRescanResult } from '../services/scan/scanStore';
 import { insertPantryItems, fetchPantryItems } from '../services/supabase/pantry';
 import type { ScanStatus, ScanResult, PantryItem } from '../types';
+import type { BarcodeProduct } from '../services/barcode/barcodeService';
 
 export function useScan() {
   const [status, setStatus] = useState<ScanStatus>('idle');
@@ -170,11 +171,33 @@ export function useScan() {
     return base64;
   }, []);
 
+  const setBarcodeResult = useCallback((product: BarcodeProduct) => {
+    const now = new Date();
+    const expiry = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // default 14 days
+    const result: ScanResult = {
+      mode: 'ticket',
+      products: [{
+        id: `barcode-${Date.now()}`,
+        name: product.brand ? `${product.name} (${product.brand})` : product.name,
+        category: product.category ?? 'Otro',
+        quantity: 1,
+        unit: product.quantity ?? 'unidad',
+        status: 'fresh',
+        purchase_date: now.toISOString(),
+        estimated_expiry: expiry.toISOString(),
+        confidence: 'media',
+      }],
+    };
+    setScanResult(result);
+    setStatus('done');
+  }, []);
+
   return {
     status, error,
     capture, pickImage, captureBase64, pickBase64,
     processImage, processRescan,
     rescan, rescanFromGallery,
     retry, confirm, clear,
+    setBarcodeResult,
   };
 }

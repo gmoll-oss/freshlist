@@ -1,9 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { ChefHat, ChevronLeft, Check, Flame, Leaf, CookingPot, UtensilsCrossed, Timer, Volume2, X, Heart } from 'lucide-react-native';
+import { ChefHat, ChevronLeft, Check, Flame, Leaf, CookingPot, UtensilsCrossed, Timer, Volume2, VolumeX, X, Heart } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as Speech from 'expo-speech';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { getCurrentMeal, clearCurrentMeal } from '../../services/mealPlan/mealPlanStore';
@@ -19,6 +20,8 @@ export default function CookScreen() {
   const [step, setStep] = useState(0);
   const [meal, setMeal] = useState<MealPlan | null>(null);
   const [isFav, setIsFav] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [autoRead, setAutoRead] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,7 +30,30 @@ export default function CookScreen() {
     if (m) {
       isFavorite(m.meal_name).then(setIsFav).catch(() => {});
     }
+    return () => { Speech.stop(); };
   }, []);
+
+  const readStep = useCallback(async (text: string) => {
+    try {
+      await Speech.stop();
+      setIsSpeaking(true);
+      Speech.speak(text, {
+        language: 'es-ES',
+        rate: 0.9,
+        onDone: () => setIsSpeaking(false),
+        onStopped: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false),
+      });
+    } catch {
+      setIsSpeaking(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (autoRead && meal?.steps[step]) {
+      readStep(meal.steps[step]);
+    }
+  }, [step, autoRead, meal, readStep]);
 
   if (!meal) {
     return (
@@ -135,9 +161,32 @@ export default function CookScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={s.voiceHint}>
-          <Volume2 size={13} color={colors.violet400} strokeWidth={2} />
-          <Text style={s.voiceText}>Di "siguiente" o "temporizador"</Text>
+        <View style={s.voiceRow}>
+          <TouchableOpacity
+            style={[s.voiceBtn, isSpeaking && s.voiceBtnActive]}
+            onPress={() => {
+              if (isSpeaking) { Speech.stop(); setIsSpeaking(false); }
+              else readStep(current);
+            }}
+          >
+            {isSpeaking
+              ? <VolumeX size={15} color={colors.violet400} strokeWidth={2} />
+              : <Volume2 size={15} color={colors.violet400} strokeWidth={2} />
+            }
+            <Text style={s.voiceBtnText}>{isSpeaking ? 'Parar' : 'Leer paso'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.autoReadBtn, autoRead && s.autoReadBtnActive]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setAutoRead(!autoRead);
+              if (!autoRead && current) readStep(current);
+            }}
+          >
+            <Text style={[s.autoReadText, autoRead && s.autoReadTextActive]}>
+              Auto-lectura {autoRead ? 'ON' : 'OFF'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -164,6 +213,19 @@ const s = StyleSheet.create({
   nextBtn: { flex: 1, height: 52, borderRadius: radius.lg, backgroundColor: colors.surface, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
   doneBtn: { backgroundColor: colors.green600 },
   nextText: { fontSize: 15, fontFamily: fonts.bold, color: colors.text },
-  voiceHint: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
-  voiceText: { fontSize: 11, color: colors.violet400, fontFamily: fonts.medium },
+  voiceRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  voiceBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: colors.violet50, borderRadius: radius.full,
+    paddingHorizontal: 14, paddingVertical: 8,
+  },
+  voiceBtnActive: { backgroundColor: colors.violet400 },
+  voiceBtnText: { fontSize: 11, fontFamily: fonts.bold, color: colors.violet400 },
+  autoReadBtn: {
+    borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  autoReadBtnActive: { backgroundColor: colors.green50, borderColor: colors.green200 },
+  autoReadText: { fontSize: 11, fontFamily: fonts.bold, color: colors.textMuted },
+  autoReadTextActive: { color: colors.green600 },
 });
