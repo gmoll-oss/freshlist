@@ -5,6 +5,7 @@ import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useEffect, useState, useRef } from 'react';
 import { colors } from '../constants/theme';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import { fetchPreferences } from '../services/supabase/preferences';
 import { useNotifications } from '../hooks/useNotifications';
@@ -96,10 +97,12 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeContext.Provider value={themeValue}>
-      <AuthProvider>
-        <AuthGate />
-      </AuthProvider>
-    </ThemeContext.Provider>
+    <ErrorBoundary>
+      <ThemeContext.Provider value={themeValue}>
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
+      </ThemeContext.Provider>
+    </ErrorBoundary>
   );
 }

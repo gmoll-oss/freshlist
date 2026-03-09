@@ -21,22 +21,27 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" options={{
         title: 'Inicio',
+        tabBarAccessibilityLabel: 'Inicio',
         tabBarIcon: ({ color, size }) => <Home size={size} color={color} strokeWidth={2} />,
       }} />
       <Tabs.Screen name="scan" options={{
         title: 'Escanear',
+        tabBarAccessibilityLabel: 'Escanear ticket o nevera',
         tabBarIcon: ({ color, size }) => <ScanLine size={size} color={color} strokeWidth={2} />,
       }} />
       <Tabs.Screen name="pantry" options={{
         title: 'Despensa',
+        tabBarAccessibilityLabel: 'Ver despensa',
         tabBarIcon: ({ color, size }) => <Package size={size} color={color} strokeWidth={2} />,
       }} />
       <Tabs.Screen name="shopping" options={{
         title: 'Compra',
+        tabBarAccessibilityLabel: 'Lista de compra',
         tabBarIcon: ({ color, size }) => <ShoppingCart size={size} color={color} strokeWidth={2} />,
       }} />
       <Tabs.Screen name="stats" options={{
         title: 'Logros',
+        tabBarAccessibilityLabel: 'Tus logros y estadisticas',
         tabBarIcon: ({ color, size }) => <Trophy size={size} color={color} strokeWidth={2} />,
       }} />
     </Tabs>

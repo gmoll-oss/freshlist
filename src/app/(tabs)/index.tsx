@@ -85,7 +85,7 @@ export default function HomeScreen() {
             <Text style={s.greeting}>{getGreeting()}</Text>
             <Text style={s.name}>{name}</Text>
           </View>
-          <TouchableOpacity style={s.avatar} onPress={() => router.push('/profile')}>
+          <TouchableOpacity style={s.avatar} onPress={() => router.push('/profile')} accessibilityLabel="Perfil" accessibilityRole="button">
             <Text style={s.avatarText}>{initial}</Text>
           </TouchableOpacity>
         </View>
@@ -264,7 +264,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Chat FAB */}
-      <TouchableOpacity style={s.fab} onPress={() => router.push('/chat' as any)}>
+      <TouchableOpacity style={s.fab} onPress={() => router.push('/chat' as any)} accessibilityLabel="Abrir chat con asistente" accessibilityRole="button">
         <MessageCircle size={24} color="white" strokeWidth={2} />
       </TouchableOpacity>
     </SafeAreaView>

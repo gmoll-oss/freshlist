@@ -127,7 +127,7 @@ export default function ShoppingScreen() {
             onSubmitEditing={handleAdd}
             returnKeyType="done"
           />
-          <TouchableOpacity style={s.addBtn} onPress={handleAdd}>
+          <TouchableOpacity style={s.addBtn} onPress={handleAdd} accessibilityLabel="Anadir producto" accessibilityRole="button">
             <Plus size={18} color="white" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>

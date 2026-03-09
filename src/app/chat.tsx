@@ -236,6 +236,8 @@ export default function ChatScreen() {
             style={[s.sendBtn, (!input.trim() || status === 'thinking') && { opacity: 0.4 }]}
             onPress={handleSend}
             disabled={!input.trim() || status === 'thinking'}
+            accessibilityLabel="Enviar mensaje"
+            accessibilityRole="button"
           >
             <Send size={18} color="white" strokeWidth={2.5} />
           </TouchableOpacity>
