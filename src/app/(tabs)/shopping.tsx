@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert, Share, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2, PackageCheck, Sparkles } from 'lucide-react-native';
+import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2, PackageCheck, Sparkles, LayoutList } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
@@ -29,6 +29,7 @@ export default function ShoppingScreen() {
 
   const [newItemText, setNewItemText] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [groupByAisle, setGroupByAisle] = useState(false);
 
   async function onRefresh() {
     setRefreshing(true);
@@ -65,6 +66,16 @@ export default function ShoppingScreen() {
   const manualItems = items.filter((i) => i.source === 'manual' || i.source === 'voice');
   const purchasedCount = allItems.filter((i) => i.purchased).length;
   const totalCount = allItems.length;
+
+  // Group by aisle/category
+  const aisleGroups = groupByAisle
+    ? items.reduce<Record<string, typeof items>>((acc, item) => {
+        const cat = item.category || 'Otro';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(item);
+        return acc;
+      }, {})
+    : {};
 
   async function handleShare() {
     const unpurchased = allItems.filter((i) => !i.purchased);
@@ -104,9 +115,14 @@ export default function ShoppingScreen() {
             </View>
             <Text style={s.subtitle}>{totalCount} productos · {purchasedCount} comprados</Text>
           </View>
-          <TouchableOpacity onPress={handleShare} style={{ padding: 4 }}>
-            <Share2 size={20} color={colors.green600} strokeWidth={2} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={() => setGroupByAisle(!groupByAisle)} style={{ padding: 4 }}>
+              <LayoutList size={20} color={groupByAisle ? colors.green600 : colors.textMuted} strokeWidth={2} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleShare} style={{ padding: 4 }}>
+              <Share2 size={20} color={colors.green600} strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Progress bar */}
@@ -169,6 +185,30 @@ export default function ShoppingScreen() {
               <Text style={s.emptyCtaText}>Generar plan</Text>
             </TouchableOpacity>
           </View>
+        ) : groupByAisle ? (
+          <>
+            {Object.entries(aisleGroups).sort(([a], [b]) => a.localeCompare(b)).map(([cat, catItems]) => (
+              <View key={cat} style={s.section}>
+                <View style={s.sectionHeader}>
+                  <Package size={13} color={colors.green600} strokeWidth={2.5} />
+                  <Text style={[s.sectionTitle, { color: colors.green600 }]}>{cat.toUpperCase()}</Text>
+                  <Text style={s.sectionCount}>{catItems.length}</Text>
+                </View>
+                {catItems.map((item) => (
+                  <SwipeToDelete key={item.id} onDelete={() => handleRemove(item.id)}>
+                    <ShoppingRow
+                      item={item}
+                      iconBg={colors.green50}
+                      iconColor={colors.green600}
+                      inPantry={isInPantry(item.name)}
+                      onToggle={() => handleToggle(item.id)}
+                      onRemove={() => handleRemove(item.id)}
+                    />
+                  </SwipeToDelete>
+                ))}
+              </View>
+            ))}
+          </>
         ) : (
           <>
             {/* Plan items */}
@@ -328,6 +368,7 @@ const s = StyleSheet.create({
   section: { marginBottom: 14 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   sectionTitle: { fontSize: 11, fontFamily: fonts.bold, letterSpacing: 0.5 },
+  sectionCount: { fontSize: 10, fontFamily: fonts.medium, color: colors.textMuted, marginLeft: 4 },
   item: {
     backgroundColor: colors.card,
     borderRadius: 12,
