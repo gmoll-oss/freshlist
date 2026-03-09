@@ -1,0 +1,46 @@
+# Ralph Progress Log
+Started: Mon Mar  9 09:34:28 CET 2026
+---
+
+## Codebase Patterns
+- expo-notifications v55 requires `shouldShowBanner` and `shouldShowList` in `NotificationBehavior` (in addition to `shouldShowAlert`)
+- Use `SchedulableTriggerInputTypes.DAILY` with `hour`/`minute` for daily local notifications
+- Use `SchedulableTriggerInputTypes.WEEKLY` with `weekday`/`hour`/`minute` for weekly notifications (weekday 1 = Sunday)
+- Services are organized in `src/services/supabase/` (DB) and `src/services/ai/` (Claude); new services go in `src/services/`
+- Hooks go in `src/hooks/` and are integrated via `_layout.tsx` AuthGate component
+- Cancel previous scheduled notifications by tag before rescheduling to avoid duplicates
+- AI services use `callWithRetry<T>()` from `./utils` which parses JSON response; prompts must request JSON-only output
+- Supabase upsert with `onConflict` requires a unique constraint on the conflict columns
+- Use `getCurrentUserId()` from `./pantry` in all supabase services for auth
+
+---
+
+## 2026-03-09 - Story 14
+- Implemented local notification system using expo-notifications
+- Created `src/services/notifications.ts` with: requestPermissions(), scheduleDailyExpiryCheck() (9:00 daily), scheduleNoCookReminder() (21:00 daily), cancelNotificationsByTag(), initNotifications()
+- Created `src/hooks/useNotifications.ts` that calls initNotifications on mount with foreground listener
+- Integrated useNotifications hook in `src/app/_layout.tsx` AuthGate
+- Files changed: src/services/notifications.ts (new), src/hooks/useNotifications.ts (new), src/app/_layout.tsx (modified)
+- **Learnings for future iterations:**
+  - expo-notifications v55 `NotificationBehavior` type requires `shouldShowBanner` and `shouldShowList` fields — omitting them causes TS errors
+  - Tag-based cancellation pattern: store `{ tag: 'some-tag' }` in notification data, then filter by it when cancelling
+  - All notifications are local (no push server needed)
+---
+
+## 2026-03-09 - Story 15
+- Implemented weekly summary screen with AI-powered insights
+- Created `supabase/migrations/20260310_weekly_summaries.sql` with weekly_summaries table (RLS, unique constraint on user_id+week_start)
+- Created `src/services/supabase/weeklySummary.ts` with generateAndSaveSummary(), fetchWeeklySummary(), updateAiFeedback(), helpers for week calculation
+- Created `src/services/ai/weeklyInsight.ts` with generateWeeklyInsight() that sends weekly data to Claude and gets personalized feedback
+- Added WEEKLY_INSIGHT prompt to `src/constants/prompts.ts`
+- Created `src/app/weekly-summary.tsx` with stats cards, comparison with previous week, and AI insight bubbles
+- Added 'Ver resumen semanal' button in `src/app/(tabs)/stats.tsx`
+- Added scheduleWeeklySummaryNotification() (Sunday 20:00) in `src/services/notifications.ts`
+- Updated WeeklySummary type in `src/types/index.ts` to include week_start, meals_planned, ai_feedback; added WeeklyInsightResponse type
+- Files changed: supabase/migrations/20260310_weekly_summaries.sql (new), src/services/supabase/weeklySummary.ts (new), src/services/ai/weeklyInsight.ts (new), src/app/weekly-summary.tsx (new), src/app/(tabs)/stats.tsx (modified), src/constants/prompts.ts (modified), src/services/notifications.ts (modified), src/types/index.ts (modified)
+- **Learnings for future iterations:**
+  - Use `SchedulableTriggerInputTypes.WEEKLY` with weekday for weekly notifications
+  - Supabase upsert needs unique constraint defined in the migration for onConflict to work
+  - AI insight results can be cached in the ai_feedback column as JSON string to avoid re-calling Claude
+  - The WeeklySummary type was pre-existing but needed updating — always check types/index.ts before creating new types
+---

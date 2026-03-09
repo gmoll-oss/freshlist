@@ -1,12 +1,14 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { Trophy, CookingPot, Trash2, TrendingUp, Leaf, Star, Share2, Flame, Heart, ThumbsUp, ThumbsDown } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Trophy, CookingPot, Trash2, TrendingUp, Leaf, Star, Share2, Flame, Heart, ThumbsUp, ThumbsDown, BarChart3 } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { fetchUserStats } from '../../services/supabase/stats';
 import type { UserStats } from '../../types';
 
 export default function StatsScreen() {
+  const router = useRouter();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,6 +90,11 @@ export default function StatsScreen() {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity style={s.summaryBtn} onPress={() => router.push('/weekly-summary')}>
+          <BarChart3 size={16} color={colors.green600} strokeWidth={2} />
+          <Text style={s.summaryBtnText}>Ver resumen semanal</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -111,4 +118,6 @@ const s = StyleSheet.create({
   feedbackRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
   feedBtn: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, paddingVertical: 11, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
   feedText: { fontSize: 12, fontFamily: fonts.medium, color: colors.textSec },
+  summaryBtn: { marginTop: 10, backgroundColor: colors.surface, borderRadius: radius.lg, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: colors.border },
+  summaryBtnText: { fontSize: 14, fontFamily: fonts.bold, color: colors.green600 },
 });

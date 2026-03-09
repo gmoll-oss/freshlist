@@ -82,12 +82,21 @@ export interface PantryStaple {
 }
 
 export interface WeeklySummary {
+  id?: string;
+  week_start: string;
   meals_cooked: number;
+  meals_planned: number;
   products_saved: number;
   products_thrown: number;
   euros_saved: number;
-  favorite_meal: string;
-  veggie_change_pct: number;
+  favorite_meal: string | null;
+  ai_feedback: string | null;
+}
+
+export interface WeeklyInsightResponse {
+  main_insight: string;
+  recommendation: string;
+  encouragement: string;
 }
 
 // OCR types

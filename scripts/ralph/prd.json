@@ -83,14 +83,14 @@
       "id": "14",
       "title": "Notificaciones de caducidad y recordatorios",
       "description": "Implementar sistema de notificaciones locales usando expo-notifications (ya instalado en package.json). Crear src/services/notifications.ts con: requestPermissions() para pedir permisos al usuario, scheduleDailyExpiryCheck() que programa notif diaria a las 9:00 revisando pantry_items que caducan hoy o manana (texto: 'Tienes X productos que caducan hoy'), scheduleNoCookReminder() que programa notif a las 21:00 si hay un meal_plan para hoy sin cooked=true (texto: 'Has cocinado hoy? Si no, movemos el plan'). Crear src/hooks/useNotifications.ts que inicializa permisos y listeners al montar. Integrar el hook en src/app/_layout.tsx para que se ejecute al arrancar la app. Todas las notificaciones deben ser locales, no push.",
-      "passes": false,
+      "passes": true,
       "priority": 14
     },
     {
       "id": "15",
       "title": "Resumen semanal con insights IA",
       "description": "Crear src/app/weekly-summary.tsx con pantalla de resumen. Crear migracion Supabase 20260310_weekly_summaries.sql con tabla weekly_summaries (id uuid PK, user_id uuid FK, week_start date, meals_cooked int, meals_planned int, products_saved int, products_thrown int, euros_saved numeric, favorite_meal text, ai_feedback text, created_at timestamptz, RLS user_id). Crear src/services/supabase/weeklySummary.ts con generateAndSave(weekStart) que recopila datos de meal_plans y user_stats de esa semana. Crear src/services/ai/weeklyInsight.ts que llama a Claude con los datos y genera 2-3 frases de feedback personalizado. La pantalla muestra: stats en cards, feedback IA en burbuja, comparacion con semana anterior. Acceso desde stats.tsx con boton 'Ver resumen semanal'. Programar notificacion domingo 20:00 invitando a ver el resumen.",
-      "passes": false,
+      "passes": true,
       "priority": 15
     },
     {

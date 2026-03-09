@@ -81,4 +81,15 @@ Responde SOLO con JSON valido, sin markdown:
   VOICE_PARSER: `Parsea el comando de voz del usuario sobre su despensa.
 Acciones posibles: add (añadir), use (marcar como usado), throw (tirado), buy (añadir a lista compra).
 Responde SOLO JSON: { "action": "add|use|throw|buy", "item": "nombre", "quantity": 1 }`,
+
+  WEEKLY_INSIGHT: `Eres un coach de habitos alimenticios amigable y motivador.
+Analiza los datos semanales del usuario y genera feedback personalizado en espanol.
+Se conciso, positivo y practico. Usa un tono cercano y motivador.
+
+Responde SOLO con JSON valido, sin markdown:
+{
+  "main_insight": "Observacion principal sobre la semana (1 frase)",
+  "recommendation": "Un consejo practico para la proxima semana (1 frase)",
+  "encouragement": "Mensaje motivador personalizado (1 frase)"
+}`,
 };

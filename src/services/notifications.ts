@@ -101,6 +101,27 @@ async function cancelNotificationsByTag(tag: string): Promise<void> {
 }
 
 /**
+ * Schedule weekly notification on Sunday at 20:00 inviting user to see weekly summary.
+ */
+export async function scheduleWeeklySummaryNotification(): Promise<void> {
+  await cancelNotificationsByTag('weekly-summary');
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '📊 Tu resumen semanal está listo',
+      body: 'Mira cómo te ha ido esta semana y descubre consejos personalizados',
+      data: { tag: 'weekly-summary' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: 1, // Sunday
+      hour: 20,
+      minute: 0,
+    },
+  });
+}
+
+/**
  * Initialize all notification schedules.
  */
 export async function initNotifications(): Promise<void> {
@@ -109,4 +130,5 @@ export async function initNotifications(): Promise<void> {
 
   await scheduleDailyExpiryCheck();
   await scheduleNoCookReminder();
+  await scheduleWeeklySummaryNotification();
 }
