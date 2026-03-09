@@ -1,6 +1,18 @@
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchPantryItems } from './supabase/pantry';
 import { getTodaysMeals } from './supabase/mealPlans';
+
+const NOTIF_KEYS = {
+  expiry: 'notif_expiry_enabled',
+  cookReminder: 'notif_cook_enabled',
+  weeklySummary: 'notif_weekly_enabled',
+};
+
+async function isNotifEnabled(key: string): Promise<boolean> {
+  const val = await AsyncStorage.getItem(key);
+  return val === null ? true : val === 'true'; // default on
+}
 
 // Configure how notifications are shown when app is in foreground
 Notifications.setNotificationHandler({
@@ -27,6 +39,8 @@ export async function requestPermissions(): Promise<boolean> {
 export async function scheduleDailyExpiryCheck(): Promise<void> {
   // Cancel any previous expiry notifications
   await cancelNotificationsByTag('expiry-check');
+
+  if (!(await isNotifEnabled(NOTIF_KEYS.expiry))) return;
 
   const items = await fetchPantryItems();
   const today = new Date();
@@ -64,6 +78,8 @@ export async function scheduleDailyExpiryCheck(): Promise<void> {
 export async function scheduleNoCookReminder(): Promise<void> {
   // Cancel any previous cook reminders
   await cancelNotificationsByTag('cook-reminder');
+
+  if (!(await isNotifEnabled(NOTIF_KEYS.cookReminder))) return;
 
   try {
     const todaysMeals = await getTodaysMeals();
@@ -105,6 +121,8 @@ async function cancelNotificationsByTag(tag: string): Promise<void> {
  */
 export async function scheduleWeeklySummaryNotification(): Promise<void> {
   await cancelNotificationsByTag('weekly-summary');
+
+  if (!(await isNotifEnabled(NOTIF_KEYS.weeklySummary))) return;
 
   await Notifications.scheduleNotificationAsync({
     content: {
