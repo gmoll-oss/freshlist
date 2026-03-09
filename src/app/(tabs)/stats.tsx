@@ -2,7 +2,8 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { Trophy, CookingPot, Trash2, TrendingUp, Leaf, Star, Share2, Flame, Heart, ThumbsUp, ThumbsDown, BarChart3 } from 'lucide-react-native';
+import { Trophy, CookingPot, Trash2, TrendingUp, Leaf, Star, Share2, Flame, Heart, ThumbsUp, ThumbsDown, BarChart3, Sparkles } from 'lucide-react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { fetchUserStats } from '../../services/supabase/stats';
 import { saveFeedback } from '../../services/supabase/feedback';
@@ -44,16 +45,30 @@ export default function StatsScreen() {
     );
   }
 
+  const isAllZero = stats.total_recipes_cooked === 0 && stats.total_products_saved === 0 && stats.total_saved_euros === 0;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green600} />}>
-        <View style={s.headerRow}>
-          <Trophy size={15} color={colors.amber400} strokeWidth={2.2} />
-          <Text style={s.headerLabel}>TUS LOGROS</Text>
-        </View>
-        <Text style={s.title}>Tu progreso en FreshList</Text>
+        <Animated.View entering={FadeInDown.delay(50).duration(400)}>
+          <View style={s.headerRow}>
+            <Trophy size={15} color={colors.amber400} strokeWidth={2.2} />
+            <Text style={s.headerLabel}>TUS LOGROS</Text>
+          </View>
+          <Text style={s.title}>Tu progreso en FreshList</Text>
+        </Animated.View>
 
-        <View style={s.mainCard}>
+        {isAllZero && (
+          <Animated.View entering={FadeInDown.delay(150).duration(400)} style={s.emptyBanner}>
+            <Sparkles size={20} color={colors.green600} strokeWidth={2} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.emptyBannerTitle}>Empieza tu primera receta</Text>
+              <Text style={s.emptyBannerSub}>Escanea un ticket, genera un plan y cocina para ver tus estadisticas aqui</Text>
+            </View>
+          </Animated.View>
+        )}
+
+        <Animated.View entering={FadeInDown.delay(200).duration(400)} style={s.mainCard}>
           <View style={s.grid}>
             {[
               { v: String(stats.total_recipes_cooked), l: 'Cenas cocinadas', fg: colors.green600, bg: colors.green50, Icon: CookingPot },
@@ -82,8 +97,9 @@ export default function StatsScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </Animated.View>
 
+        <Animated.View entering={FadeInDown.delay(350).duration(400)}>
         <TouchableOpacity style={s.shareBtn} onPress={async () => {
           try {
             await Share.share({
@@ -120,6 +136,7 @@ export default function StatsScreen() {
           <BarChart3 size={16} color={colors.green600} strokeWidth={2} />
           <Text style={s.summaryBtnText}>Ver resumen semanal</Text>
         </TouchableOpacity>
+        </Animated.View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -146,4 +163,11 @@ const s = StyleSheet.create({
   feedText: { fontSize: 12, fontFamily: fonts.medium, color: colors.textSec },
   summaryBtn: { marginTop: 10, backgroundColor: colors.surface, borderRadius: radius.lg, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: colors.border },
   summaryBtnText: { fontSize: 14, fontFamily: fonts.bold, color: colors.green600 },
+  emptyBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: colors.green50, borderRadius: radius.lg, padding: 14,
+    borderWidth: 1, borderColor: colors.green200, marginBottom: 16,
+  },
+  emptyBannerTitle: { fontSize: 14, fontFamily: fonts.bold, color: colors.green700 },
+  emptyBannerSub: { fontSize: 11, fontFamily: fonts.regular, color: colors.green600, marginTop: 2 },
 });

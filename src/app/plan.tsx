@@ -1,6 +1,10 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, LayoutAnimation, UIManager, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { useRouter } from 'expo-router';
 import {
   ChevronLeft,
@@ -55,6 +59,7 @@ export default function PlanScreen() {
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
 
   function toggleIngredients(id: string) {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedMeals((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);

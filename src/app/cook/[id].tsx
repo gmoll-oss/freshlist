@@ -1,9 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { ChefHat, ChevronLeft, Check, Flame, Leaf, CookingPot, UtensilsCrossed, Timer, Volume2, X, Heart } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { getCurrentMeal, clearCurrentMeal } from '../../services/mealPlan/mealPlanStore';
 import { markMealCooked } from '../../services/supabase/mealPlans';
@@ -109,24 +110,24 @@ export default function CookScreen() {
         </View>
 
         {/* Step card */}
-        <View style={s.stepCard}>
+        <Animated.View key={step} entering={FadeIn.duration(250)} exiting={FadeOut.duration(150)} style={s.stepCard}>
           <View style={s.stepIconBox}>
             <StepIcon size={36} color={colors.green600} strokeWidth={1.5} />
           </View>
           <Text style={s.stepNum}>PASO {step + 1} DE {steps.length}</Text>
           <Text style={s.stepText}>{current}</Text>
-        </View>
+        </Animated.View>
 
         <View style={{ flex: 1 }} />
 
         {/* Navigation */}
         <View style={s.navRow}>
-          <TouchableOpacity style={s.backBtn} onPress={() => setStep(Math.max(0, step - 1))}>
+          <TouchableOpacity style={s.backBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setStep(Math.max(0, step - 1)); }}>
             <ChevronLeft size={20} color={colors.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[s.nextBtn, isLast && s.doneBtn]}
-            onPress={() => isLast ? handleDone() : setStep(step + 1)}>
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); isLast ? handleDone() : setStep(step + 1); }}>
             {isLast && <Check size={18} color="white" strokeWidth={2.5} />}
             <Text style={[s.nextText, isLast && { color: 'white' }]}>
               {isLast ? 'Hecho' : 'Siguiente'}
