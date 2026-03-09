@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from 'react';
 import { colors } from '../constants/theme';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import { fetchPreferences } from '../services/supabase/preferences';
+import { useNotifications } from '../hooks/useNotifications';
 
 function AuthGate() {
   const { isAuthenticated, loading, skipped } = useAuth();
@@ -13,6 +14,9 @@ function AuthGate() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const checkedRef = useRef(false);
+
+  // Initialize local notifications (expiry alerts, cook reminders)
+  useNotifications();
 
   useEffect(() => {
     if (loading) return;
