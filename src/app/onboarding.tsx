@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
+import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { savePreferences } from '../services/supabase/preferences';
 import type { UserPreferences } from '../types';
@@ -117,7 +118,7 @@ export default function OnboardingScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
         {/* Step 0: Name */}
         {step === 0 && (
-          <View>
+          <Animated.View key="step0" entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)}>
             <Text style={s.emoji}>👋</Text>
             <Text style={s.question}>Como te llamas?</Text>
             <Text style={s.hint}>Para personalizar tu experiencia</Text>
@@ -130,12 +131,12 @@ export default function OnboardingScreen() {
               autoFocus
               autoCapitalize="words"
             />
-          </View>
+          </Animated.View>
         )}
 
         {/* Step 1: People count */}
         {step === 1 && (
-          <View>
+          <Animated.View key="step1" entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)}>
             <Text style={s.emoji}>👥</Text>
             <Text style={s.question}>Cuantos comeis en casa?</Text>
             <Text style={s.hint}>Ajustaremos las raciones</Text>
@@ -150,12 +151,12 @@ export default function OnboardingScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* Step 2: Meals config (no days — that's per-week in plan screen) */}
         {step === 2 && (
-          <View>
+          <Animated.View key="step2" entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)}>
             <Text style={s.emoji}>🍽️</Text>
             <Text style={s.question}>Que comidas planificamos?</Text>
             <Text style={s.hint}>Selecciona al menos una</Text>
@@ -175,12 +176,12 @@ export default function OnboardingScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* Step 3: Diet type (multi-select) */}
         {step === 3 && (
-          <View>
+          <Animated.View key="step3" entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)}>
             <Text style={s.emoji}>🥑</Text>
             <Text style={s.question}>Tu tipo de dieta?</Text>
             <Text style={s.hint}>Puedes seleccionar varias</Text>
@@ -195,12 +196,12 @@ export default function OnboardingScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* Step 4: Cooking time */}
         {step === 4 && (
-          <View>
+          <Animated.View key="step4" entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)}>
             <Text style={s.emoji}>⏱️</Text>
             <Text style={s.question}>Cuanto tiempo tienes para cocinar?</Text>
             <Text style={s.hint}>Adaptaremos la complejidad de las recetas</Text>
@@ -216,12 +217,12 @@ export default function OnboardingScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* Step 5: Health goal + Intolerances (last step) */}
         {step === 5 && (
-          <View>
+          <Animated.View key="step5" entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)}>
             <Text style={s.emoji}>🎯</Text>
             <Text style={s.question}>Algun objetivo o intolerancia?</Text>
 
@@ -265,7 +266,7 @@ export default function OnboardingScreen() {
                 </TouchableOpacity>
               )}
             </View>
-          </View>
+          </Animated.View>
         )}
       </ScrollView>
 

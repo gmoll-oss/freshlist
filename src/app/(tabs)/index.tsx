@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, RefreshCon
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Flame, CookingPot, ChefHat, Timer, UtensilsCrossed, ChevronRight, AlertTriangle, Receipt, Package, Sparkles, ScanLine, MessageCircle, ArrowRight, Check, Coffee, Apple, WifiOff } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
@@ -128,6 +129,7 @@ export default function HomeScreen() {
         )}
 
         {/* 2. Resumen despensa */}
+        <Animated.View entering={FadeInDown.delay(100).duration(400)}>
         <TouchableOpacity style={s.pantryCard} onPress={() => router.push('/(tabs)/pantry' as any)}>
           <View style={s.pantryIcon}>
             <Package size={18} color={colors.green600} strokeWidth={2} />
@@ -140,6 +142,7 @@ export default function HomeScreen() {
           </View>
           <ChevronRight size={16} color={colors.textDim} />
         </TouchableOpacity>
+        </Animated.View>
 
         {/* 3. Mi dia — multi-meal widget */}
         {todayMeals.length > 0 ? (
@@ -214,7 +217,7 @@ export default function HomeScreen() {
         </View>
 
         {/* 5. Racha — motivacional al final */}
-        <View style={s.streakCard}>
+        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={s.streakCard}>
           <View style={s.streakLeft}>
             <View style={s.streakIcon}>
               <Flame size={20} color={colors.orange500} strokeWidth={2.2} />
@@ -228,7 +231,7 @@ export default function HomeScreen() {
             <Text style={s.savedNum}>{stats.total_saved_euros}€</Text>
             <Text style={s.savedLabel}>ahorrados</Text>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Autopilot banner */}
         {todayMeals.length === 0 && (
