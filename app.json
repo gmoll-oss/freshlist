@@ -57,6 +57,12 @@
       ],
       "expo-apple-authentication",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "FreshList usa tu ubicacion para mostrarte ofertas y supermercados cercanos."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",

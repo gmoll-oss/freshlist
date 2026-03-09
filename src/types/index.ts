@@ -138,6 +138,51 @@ export interface RescanResponse {
   new_items: OCRProduct[];
 }
 
+// Shopping reminders — "recordar para la próxima"
+export interface ShoppingReminder {
+  id: string;
+  name: string;
+  note?: string;
+  created_at: string;
+  completed: boolean;
+}
+
+// Offers & deals
+export interface SupermarketOffer {
+  id: string;
+  store_id: string;
+  store_name: string;
+  product_name: string;
+  original_price: number;
+  offer_price: number;
+  discount_pct: number;
+  valid_until: string;
+  category: string;
+  image_url?: string;
+}
+
+export interface OfferMatch {
+  offer: SupermarketOffer;
+  matched_item: string; // shopping list or pantry item name it matches
+  relevance: 'exact' | 'similar' | 'category';
+}
+
+// User location
+export interface UserLocation {
+  latitude: number;
+  longitude: number;
+  city?: string;
+  postal_code?: string;
+}
+
+export interface NearbyStore {
+  store_id: string;
+  store_name: string;
+  distance_km: number;
+  address: string;
+  offers_count: number;
+}
+
 export type ScanStatus = 'idle' | 'capturing' | 'processing' | 'done' | 'error';
 
 export interface ScanResult {

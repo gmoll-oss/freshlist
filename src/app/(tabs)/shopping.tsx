@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert, Share, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
-import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2, PackageCheck, Sparkles, LayoutList } from 'lucide-react-native';
+import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2, PackageCheck, Sparkles, LayoutList, Tag, Lightbulb } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
@@ -165,6 +165,18 @@ export default function ShoppingScreen() {
             })}
           </View>
         </ScrollView>
+
+        {/* Quick links */}
+        <View style={s.quickLinks}>
+          <TouchableOpacity style={s.quickLink} onPress={() => router.push('/reminders' as any)}>
+            <Lightbulb size={13} color={colors.amber400} strokeWidth={2.5} />
+            <Text style={s.quickLinkText}>Recordar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.quickLink} onPress={() => router.push('/offers' as any)}>
+            <Tag size={13} color={colors.green600} strokeWidth={2.5} />
+            <Text style={s.quickLinkText}>Ofertas</Text>
+          </TouchableOpacity>
+        </View>
 
         {loading ? (
           <View style={{ gap: 4, marginTop: 10 }}>
@@ -369,6 +381,14 @@ const s = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   sectionTitle: { fontSize: 11, fontFamily: fonts.bold, letterSpacing: 0.5 },
   sectionCount: { fontSize: 10, fontFamily: fonts.medium, color: colors.textMuted, marginLeft: 4 },
+  quickLinks: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  quickLink: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: colors.card, borderRadius: radius.full,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  quickLinkText: { fontSize: 12, fontFamily: fonts.medium, color: colors.textSec },
   item: {
     backgroundColor: colors.card,
     borderRadius: 12,
