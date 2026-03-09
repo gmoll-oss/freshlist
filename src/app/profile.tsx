@@ -2,10 +2,11 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { ChevronLeft, LogOut, Users, UtensilsCrossed, Leaf, AlertTriangle, Timer, Target } from 'lucide-react-native';
+import { ChevronLeft, LogOut, Users, UtensilsCrossed, Leaf, AlertTriangle, Timer, Target, Heart, Moon } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { usePreferences } from '../hooks/usePreferences';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme, ThemeMode } from '../hooks/useTheme';
 
 const COOKING_LABELS: Record<string, string> = {
   rapido: 'Rapido (< 15 min)',
@@ -17,6 +18,10 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
   const { preferences, loading, load } = usePreferences();
+  const { mode, setMode } = useTheme();
+
+  const THEME_LABELS: Record<ThemeMode, string> = { auto: 'Auto', light: 'Claro', dark: 'Oscuro' };
+  const nextTheme: Record<ThemeMode, ThemeMode> = { auto: 'light', light: 'dark', dark: 'auto' };
 
   useEffect(() => { load(); }, [load]);
 
@@ -119,6 +124,28 @@ export default function ProfileScreen() {
             <Text style={s.cardValue}>
               {preferences.intolerances.length > 0 ? preferences.intolerances.join(', ') : 'Ninguna'}
             </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Theme toggle */}
+        <TouchableOpacity style={s.card} onPress={() => setMode(nextTheme[mode])}>
+          <View style={[s.cardIcon, { backgroundColor: colors.violet50 }]}>
+            <Moon size={18} color={colors.violet400} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.cardLabel}>Tema</Text>
+            <Text style={s.cardValue}>{THEME_LABELS[mode]}</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Favorites */}
+        <TouchableOpacity style={s.card} onPress={() => router.push('/favorites' as any)}>
+          <View style={[s.cardIcon, { backgroundColor: colors.red50 }]}>
+            <Heart size={18} color={colors.red400} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.cardLabel}>Recetas</Text>
+            <Text style={s.cardValue}>Mis recetas favoritas</Text>
           </View>
         </TouchableOpacity>
 

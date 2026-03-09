@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X } from 'lucide-react-native';
+import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2 } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { STORES } from '../../constants/stores';
 import { useShopping } from '../../hooks/useShopping';
@@ -42,6 +42,31 @@ export default function ShoppingScreen() {
   const purchasedCount = allItems.filter((i) => i.purchased).length;
   const totalCount = allItems.length;
 
+  async function handleShare() {
+    const unpurchased = allItems.filter((i) => !i.purchased);
+    if (unpurchased.length === 0) {
+      Alert.alert('Lista vacia', 'No hay productos por comprar');
+      return;
+    }
+    const plan = unpurchased.filter((i) => i.source === 'ai_suggestion');
+    const staples = unpurchased.filter((i) => i.source === 'auto');
+    const manual = unpurchased.filter((i) => i.source === 'manual' || i.source === 'voice');
+
+    let text = 'Lista de compra FreshList\n';
+    if (plan.length > 0) {
+      text += '\nDel plan:\n' + plan.map((i) => `- ${i.quantity}x ${i.name}`).join('\n');
+    }
+    if (staples.length > 0) {
+      text += '\n\nFondo cocina:\n' + staples.map((i) => `- ${i.name}`).join('\n');
+    }
+    if (manual.length > 0) {
+      text += '\n\nOtros:\n' + manual.map((i) => `- ${i.quantity}x ${i.name}`).join('\n');
+    }
+    try {
+      await Share.share({ message: text });
+    } catch (_) {}
+  }
+
   const storeFilters = [{ id: null, name: 'Todos', color: colors.green600 }, ...STORES.map((s) => ({ ...s, id: s.id as string | null }))];
 
   return (
@@ -55,6 +80,9 @@ export default function ShoppingScreen() {
             </View>
             <Text style={s.subtitle}>{totalCount} productos · {purchasedCount} comprados</Text>
           </View>
+          <TouchableOpacity onPress={handleShare} style={{ padding: 4 }}>
+            <Share2 size={20} color={colors.green600} strokeWidth={2} />
+          </TouchableOpacity>
         </View>
 
         {/* Add item input */}

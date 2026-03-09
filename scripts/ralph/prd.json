@@ -97,42 +97,42 @@
       "id": "16",
       "title": "Recetas favoritas y historial",
       "description": "Crear migracion 20260310_recipe_favorites.sql con tabla recipe_favorites (id uuid PK, user_id uuid FK, meal_name text, ingredients jsonb, steps jsonb, prep_time_minutes int, servings int, meal_type text default 'dinner', times_cooked int default 1, last_cooked date, created_at timestamptz, RLS user_id). Crear src/services/supabase/favorites.ts con toggleFavorite(meal), fetchFavorites(), incrementTimesCooked(id). En src/app/cook/[id].tsx anadir boton corazon (Heart de Lucide) en el header que guarda/quita favorito. Crear src/app/favorites.tsx con lista de recetas favoritas ordenadas por times_cooked desc. En src/services/ai/mealPlanner.ts pasar lista de favoritas como contexto extra a Claude: 'RECETAS FAVORITAS DEL USUARIO: [lista] — puedes reutilizarlas si encajan con los ingredientes'. Acceso desde profile.tsx con card 'Mis recetas favoritas' y desde plan.tsx con chip 'Incluir favoritas'.",
-      "passes": false,
+      "passes": true,
       "priority": 16
     },
     {
       "id": "17",
       "title": "Compartir lista de compra",
       "description": "En src/app/(tabs)/shopping.tsx anadir boton Share (Share2 de Lucide) en el header al lado del titulo. Al pulsar, generar texto formateado con items agrupados por seccion usando Share de react-native (ya disponible, no necesita install). Formato: 'Lista de compra FreshList\\n\\nDel plan:\\n- 2x Pechuga pollo\\n- 1x Espinacas\\n\\nFondo cocina:\\n- Aceite de oliva\\n\\nOtros:\\n- Leche'. Solo incluir items no comprados (purchased=false). Si no hay items, mostrar Alert en vez de compartir.",
-      "passes": false,
+      "passes": true,
       "priority": 17
     },
     {
       "id": "18",
       "title": "Modo oscuro",
       "description": "Ampliar src/constants/theme.ts: crear objeto darkColors con mapeo oscuro (bg: '#1C1917', card: '#292524', surface: '#292524', surfaceHover: '#3D3835', green50: '#052E16', green100: '#064E3B', text: '#FAFAF7', textSec: '#D6D3D1', textMuted: '#78716C', textDim: '#57534E', border: '#44403C', borderLight: '#3D3835', red50: '#450A0A', orange50: '#431407', violet50: '#2E1065'; mantener los colores primarios 400-700 iguales). Crear src/hooks/useTheme.ts que lee useColorScheme() de react-native y devuelve lightColors o darkColors. Guardar preferencia manual (auto/light/dark) en AsyncStorage con key 'theme_mode'. Crear ThemeProvider con Context en src/hooks/useTheme.ts que envuelve la app. Reemplazar todas las importaciones de { colors } from 'constants/theme' por const { colors } = useTheme() en TODOS los archivos de src/app/. Anadir toggle en profile.tsx con 3 opciones (Auto/Claro/Oscuro). Verificar que StatusBar cambia entre light-content y dark-content.",
-      "passes": false,
+      "passes": true,
       "priority": 18
     },
     {
       "id": "19",
       "title": "Input por voz en shopping y chat",
       "description": "Usar expo-speech (ya instalado) para feedback de voz. Para speech-to-text usar la Web Speech API via webview o instalar expo-speech-recognition si esta disponible para Expo 55. Crear src/services/voice.ts con startListening(): Promise<string> y stopListening(). En src/app/(tabs)/shopping.tsx anadir TouchableOpacity con icono Mic (de Lucide) junto al TextInput. Al pulsar: activar escucha, mostrar indicador visual (View con borde pulsante rojo), al terminar: parsear con VOICE_PARSER prompt existente y ejecutar la accion (add items a la lista). En src/app/chat.tsx anadir boton Mic al lado del boton Send. Al pulsar: escuchar, transcribir, poner texto en el input y enviar automaticamente. Si speech recognition no esta disponible en la plataforma, mostrar Alert informativo y ocultar el boton.",
-      "passes": false,
+      "passes": true,
       "priority": 19
     },
     {
       "id": "20",
       "title": "Tutorial interactivo post-onboarding",
       "description": "Crear src/app/tutorial.tsx con 3 pantallas de tutorial: 1) icono ScanLine grande + 'Escanea tu ticket o nevera' + subtexto 'Detectamos todos tus productos automaticamente', 2) icono Sparkles + 'Te planificamos la semana' + subtexto 'Menu personalizado basado en lo que tienes', 3) icono ChefHat + 'Cocina sin pensar' + subtexto 'Recetas paso a paso con timer integrado'. Navegacion con dots y boton Siguiente/Empezar. Ultimo paso redirige a /(tabs). Guardar tutorial_done=true en user_preferences (anadir campo con migracion 20260310_tutorial_done.sql: ALTER TABLE user_preferences ADD COLUMN tutorial_done boolean DEFAULT false). En src/app/_layout.tsx: despues del onboarding check, si tutorial_done=false redirigir a /tutorial.",
-      "passes": false,
+      "passes": true,
       "priority": 20
     },
     {
       "id": "21",
       "title": "Stats compartibles y feedback funcional",
       "description": "En src/app/(tabs)/stats.tsx: 1) Boton Compartir — al pulsar, construir texto con stats formateadas ('Mi semana en FreshList: X recetas cocinadas, X€ ahorrados, racha de X dias') y compartir via Share de react-native. 2) Botones feedback — crear migracion 20260310_feedback.sql con tabla user_feedback (id uuid PK, user_id uuid FK, week_start date, rating text CHECK IN ('buena','mejorable'), created_at timestamptz, RLS user_id). Crear src/services/supabase/feedback.ts con saveFeedback(rating). Al pulsar 'Buena semana': guardar rating='buena', mostrar Alert('Genial, sigue asi!'). Al pulsar 'Mejorable': guardar rating='mejorable', navegar a /chat con mensaje pre-rellenado 'Como puedo mejorar la semana que viene?'. Importar router y usarlo para la navegacion.",
-      "passes": false,
+      "passes": true,
       "priority": 21
     }
   ]

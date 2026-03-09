@@ -1,10 +1,11 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Trophy, CookingPot, Trash2, TrendingUp, Leaf, Star, Share2, Flame, Heart, ThumbsUp, ThumbsDown, BarChart3 } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { fetchUserStats } from '../../services/supabase/stats';
+import { saveFeedback } from '../../services/supabase/feedback';
 import type { UserStats } from '../../types';
 
 export default function StatsScreen() {
@@ -74,17 +75,33 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={s.shareBtn}>
+        <TouchableOpacity style={s.shareBtn} onPress={async () => {
+          try {
+            await Share.share({
+              message: `Mi semana en FreshList: ${stats.total_recipes_cooked} recetas cocinadas, ${stats.total_saved_euros}€ ahorrados, racha de ${stats.current_streak} dias sin tirar comida`,
+            });
+          } catch (_) {}
+        }}>
           <Share2 size={16} color="white" strokeWidth={2.5} />
           <Text style={s.shareBtnText}>Compartir en Stories</Text>
         </TouchableOpacity>
 
         <View style={s.feedbackRow}>
-          <TouchableOpacity style={s.feedBtn}>
+          <TouchableOpacity style={s.feedBtn} onPress={async () => {
+            try {
+              await saveFeedback('buena');
+              Alert.alert('Genial, sigue asi!');
+            } catch (_) {}
+          }}>
             <ThumbsUp size={14} color={colors.green600} strokeWidth={2.2} />
             <Text style={s.feedText}>Buena semana</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.feedBtn}>
+          <TouchableOpacity style={s.feedBtn} onPress={async () => {
+            try {
+              await saveFeedback('mejorable');
+              router.push('/chat' as any);
+            } catch (_) {}
+          }}>
             <ThumbsDown size={14} color={colors.textMuted} strokeWidth={2.2} />
             <Text style={s.feedText}>Mejorable</Text>
           </TouchableOpacity>

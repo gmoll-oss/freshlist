@@ -2,6 +2,7 @@ import { askClaude } from '../../lib/claude';
 import { PROMPTS } from '../../constants/prompts';
 import { callWithRetry } from './utils';
 import { fetchPreferences } from '../supabase/preferences';
+import { fetchFavorites } from '../supabase/favorites';
 import type { PantryItem, MealPlanAIResponse, UserPreferences } from '../../types';
 
 const COOKING_TIME_LIMITS: Record<string, string> = {
@@ -70,9 +71,16 @@ export async function generateMealPlan(
   const userContext = prefs ? buildUserContext(prefs) : '';
   const mealRequest = buildMealRequest(prefs, selectedDays);
 
-  const systemPrompt = userContext
-    ? `${PROMPTS.MEAL_PLANNER}\n\n${userContext}`
-    : PROMPTS.MEAL_PLANNER;
+  let favoritesContext = '';
+  try {
+    const favs = await fetchFavorites();
+    if (favs.length > 0) {
+      const favList = favs.slice(0, 10).map((f) => `${f.meal_name} (${f.times_cooked}x cocinada)`).join(', ');
+      favoritesContext = `\n\nRECETAS FAVORITAS DEL USUARIO: ${favList} — puedes reutilizarlas si encajan con los ingredientes disponibles.`;
+    }
+  } catch (_) {}
+
+  const systemPrompt = `${PROMPTS.MEAL_PLANNER}${userContext ? `\n\n${userContext}` : ''}${favoritesContext}`;
 
   return callWithRetry<MealPlanAIResponse>(() =>
     askClaude({

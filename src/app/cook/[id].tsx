@@ -2,12 +2,13 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { ChefHat, ChevronLeft, Check, Flame, Leaf, CookingPot, UtensilsCrossed, Timer, Volume2, X } from 'lucide-react-native';
+import { ChefHat, ChevronLeft, Check, Flame, Leaf, CookingPot, UtensilsCrossed, Timer, Volume2, X, Heart } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { getCurrentMeal, clearCurrentMeal } from '../../services/mealPlan/mealPlanStore';
 import { markMealCooked } from '../../services/supabase/mealPlans';
 import { incrementCooked, incrementUsed } from '../../services/supabase/stats';
 import { autoConsumePantryItems } from '../../services/supabase/pantry';
+import { toggleFavorite, isFavorite, incrementTimesCooked } from '../../services/supabase/favorites';
 import type { MealPlan } from '../../types';
 
 const STEP_ICONS = [UtensilsCrossed, CookingPot, Flame, Leaf, UtensilsCrossed, CookingPot, Flame];
@@ -15,11 +16,15 @@ const STEP_ICONS = [UtensilsCrossed, CookingPot, Flame, Leaf, UtensilsCrossed, C
 export default function CookScreen() {
   const [step, setStep] = useState(0);
   const [meal, setMeal] = useState<MealPlan | null>(null);
+  const [isFav, setIsFav] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const m = getCurrentMeal();
     setMeal(m);
+    if (m) {
+      isFavorite(m.meal_name).then(setIsFav).catch(() => {});
+    }
   }, []);
 
   if (!meal) {
@@ -40,14 +45,21 @@ export default function CookScreen() {
   const StepIcon = STEP_ICONS[step % STEP_ICONS.length];
   const isLast = step === steps.length - 1;
 
+  async function handleToggleFavorite() {
+    if (!meal) return;
+    try {
+      const nowFav = await toggleFavorite(meal);
+      setIsFav(nowFav);
+    } catch (_) {}
+  }
+
   async function handleDone() {
     try {
       await markMealCooked(meal!.id);
       await incrementCooked();
-      // Auto-consume pantry ingredients used in this recipe
+      await incrementTimesCooked(meal!.meal_name).catch(() => {});
       const ingredientNames = meal!.ingredients.map((i) => i.name);
       const consumed = await autoConsumePantryItems(ingredientNames);
-      // Update stats for each consumed item
       for (let i = 0; i < consumed; i++) {
         await incrementUsed().catch(() => {});
       }
@@ -61,10 +73,15 @@ export default function CookScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ padding: spacing.lg, flex: 1 }}>
-        {/* Close */}
-        <TouchableOpacity style={s.closeBtn} onPress={() => { clearCurrentMeal(); router.back(); }}>
-          <X size={20} color={colors.textMuted} strokeWidth={2} />
-        </TouchableOpacity>
+        {/* Top bar */}
+        <View style={s.topBar}>
+          <TouchableOpacity style={s.closeBtn} onPress={() => { clearCurrentMeal(); router.back(); }}>
+            <X size={20} color={colors.textMuted} strokeWidth={2} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleToggleFavorite} style={s.favBtn}>
+            <Heart size={20} color={isFav ? colors.red500 : colors.textMuted} strokeWidth={2} fill={isFav ? colors.red500 : 'none'} />
+          </TouchableOpacity>
+        </View>
 
         {/* Title */}
         <View style={s.titleRow}>
@@ -116,7 +133,9 @@ export default function CookScreen() {
 }
 
 const s = StyleSheet.create({
-  closeBtn: { alignSelf: 'flex-end', padding: 4 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  closeBtn: { padding: 4 },
+  favBtn: { padding: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 6 },
   modeLabel: { fontSize: 11, fontFamily: fonts.bold, color: colors.green600, letterSpacing: 0.8 },
   title: { fontSize: 20, fontFamily: fonts.black, color: colors.text, textAlign: 'center', marginBottom: 20 },
