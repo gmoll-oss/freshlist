@@ -3,7 +3,8 @@
 // For now, we provide the interface and a fallback alert.
 // When a speech recognition package is installed, implement startListening/stopListening here.
 
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
+import { Alert } from '../utils/alert';
 
 let isListening = false;
 

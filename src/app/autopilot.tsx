@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import Haptics from '../utils/haptics';
 import {
   ChevronLeft,
   Package,
@@ -176,6 +176,10 @@ export default function AutopilotScreen() {
 
         {status === 'running' && (
           <View style={s.runningBox}>
+            {/* Progress percentage */}
+            <Text style={{ fontSize: 28, fontFamily: fonts.black, color: colors.green600, textAlign: 'center', marginBottom: 8 }}>
+              {Math.round(((currentStep + 1) / STEPS.length) * 100)}%
+            </Text>
             {/* Progress bar */}
             <View style={s.progressTrack}>
               <Animated.View
@@ -197,8 +201,10 @@ export default function AutopilotScreen() {
                   <View style={[s.stepIcon, isDone && { backgroundColor: colors.green50 }]}>
                     {isDone ? (
                       <Check size={16} color={colors.green600} strokeWidth={3} />
+                    ) : isCurrent ? (
+                      <ActivityIndicator size="small" color={step.color} />
                     ) : (
-                      <StepIcon size={16} color={isCurrent ? step.color : colors.textDim} strokeWidth={2} />
+                      <StepIcon size={16} color={colors.textDim} strokeWidth={2} />
                     )}
                   </View>
                   <Text style={[s.stepLabel, isDone && s.stepLabelDone, isCurrent && s.stepLabelCurrent]}>

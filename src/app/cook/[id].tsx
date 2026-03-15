@@ -1,10 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Alert } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { ChefHat, ChevronLeft, Check, Flame, Leaf, CookingPot, UtensilsCrossed, Timer, Volume2, VolumeX, X, Heart } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
-import * as Speech from 'expo-speech';
+import Haptics from '../../utils/haptics';
+import { speak, stop } from '../../utils/speech';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { getCurrentMeal, clearCurrentMeal } from '../../services/mealPlan/mealPlanStore';
@@ -30,14 +31,14 @@ export default function CookScreen() {
     if (m) {
       isFavorite(m.meal_name).then(setIsFav).catch(() => {});
     }
-    return () => { Speech.stop(); };
+    return () => { stop(); };
   }, []);
 
   const readStep = useCallback(async (text: string) => {
     try {
-      await Speech.stop();
+      stop();
       setIsSpeaking(true);
-      Speech.speak(text, {
+      speak(text, {
         language: 'es-ES',
         rate: 0.9,
         onDone: () => setIsSpeaking(false),
@@ -165,7 +166,7 @@ export default function CookScreen() {
           <TouchableOpacity
             style={[s.voiceBtn, isSpeaking && s.voiceBtnActive]}
             onPress={() => {
-              if (isSpeaking) { Speech.stop(); setIsSpeaking(false); }
+              if (isSpeaking) { stop(); setIsSpeaking(false); }
               else readStep(current);
             }}
           >

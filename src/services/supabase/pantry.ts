@@ -36,13 +36,51 @@ export async function updatePantryItem(id: string, updates: Partial<PantryItem>)
   if (error) throw error;
 }
 
-/** Mark pantry items as 'used' that match recipe ingredients (fuzzy name match) */
+/**
+ * Consume a single pantry item, optionally by a specific quantity.
+ * - If quantityUsed is provided, subtract from current quantity.
+ *   If quantity reaches 0 or below, mark as 'used'.
+ *   Otherwise keep the current status.
+ * - If no quantityUsed provided, mark the entire item as 'used'.
+ */
+export async function consumePantryItem(
+  id: string,
+  quantityUsed?: number,
+): Promise<void> {
+  if (quantityUsed === undefined) {
+    // Mark entire item as used
+    await updatePantryItem(id, { status: 'used' });
+    return;
+  }
+
+  // Fetch current item to get its quantity
+  const { data, error: fetchError } = await supabase
+    .from('pantry_items')
+    .select('quantity, status')
+    .eq('id', id)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const newQuantity = (data.quantity ?? 0) - quantityUsed;
+
+  if (newQuantity <= 0) {
+    await updatePantryItem(id, { quantity: 0, status: 'used' });
+  } else {
+    await updatePantryItem(id, { quantity: newQuantity });
+  }
+}
+
+/** Mark pantry items as 'used' that match recipe ingredients (fuzzy name match).
+ *  Subtracts 1 from quantity; only marks as 'used' when quantity reaches 0.
+ */
 export async function autoConsumePantryItems(
   ingredientNames: string[],
 ): Promise<number> {
   const items = await fetchPantryItems();
   const activeItems = items.filter((i) => i.status === 'fresh' || i.status === 'expiring');
 
+  const matchedItems: PantryItem[] = [];
   const matchedIds: string[] = [];
   for (const ingredientName of ingredientNames) {
     const lower = ingredientName.toLowerCase();
@@ -51,18 +89,24 @@ export async function autoConsumePantryItems(
         !matchedIds.includes(item.id) &&
         (item.name.toLowerCase().includes(lower) || lower.includes(item.name.toLowerCase())),
     );
-    if (match) matchedIds.push(match.id);
+    if (match) {
+      matchedIds.push(match.id);
+      matchedItems.push(match);
+    }
   }
 
-  if (matchedIds.length === 0) return 0;
+  if (matchedItems.length === 0) return 0;
 
-  const { error } = await supabase
-    .from('pantry_items')
-    .update({ status: 'used' })
-    .in('id', matchedIds);
+  for (const item of matchedItems) {
+    const newQuantity = (item.quantity ?? 0) - 1;
+    if (newQuantity <= 0) {
+      await updatePantryItem(item.id, { quantity: 0, status: 'used' });
+    } else {
+      await updatePantryItem(item.id, { quantity: newQuantity });
+    }
+  }
 
-  if (error) throw error;
-  return matchedIds.length;
+  return matchedItems.length;
 }
 
 export async function insertPantryItems(items: PantryItem[]): Promise<void> {

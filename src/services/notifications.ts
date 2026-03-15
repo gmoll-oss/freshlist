@@ -1,7 +1,9 @@
-import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchPantryItems } from './supabase/pantry';
 import { getTodaysMeals } from './supabase/mealPlans';
+
+const Notifications = Platform.OS !== 'web' ? require('expo-notifications') : null;
 
 const NOTIF_KEYS = {
   expiry: 'notif_expiry_enabled',
@@ -15,17 +17,21 @@ async function isNotifEnabled(key: string): Promise<boolean> {
 }
 
 // Configure how notifications are shown when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export async function requestPermissions(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
+
   const { status: existing } = await Notifications.getPermissionsAsync();
   if (existing === 'granted') return true;
 
@@ -37,6 +43,8 @@ export async function requestPermissions(): Promise<boolean> {
  * Schedule daily 9:00 notification checking pantry items expiring today or tomorrow.
  */
 export async function scheduleDailyExpiryCheck(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
   // Cancel any previous expiry notifications
   await cancelNotificationsByTag('expiry-check');
 
@@ -76,6 +84,8 @@ export async function scheduleDailyExpiryCheck(): Promise<void> {
  * Schedule daily 21:00 notification if there's an uncooked meal plan for today.
  */
 export async function scheduleNoCookReminder(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
   // Cancel any previous cook reminders
   await cancelNotificationsByTag('cook-reminder');
 
@@ -120,6 +130,8 @@ async function cancelNotificationsByTag(tag: string): Promise<void> {
  * Schedule weekly notification on Sunday at 20:00 inviting user to see weekly summary.
  */
 export async function scheduleWeeklySummaryNotification(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
   await cancelNotificationsByTag('weekly-summary');
 
   if (!(await isNotifEnabled(NOTIF_KEYS.weeklySummary))) return;
@@ -143,6 +155,8 @@ export async function scheduleWeeklySummaryNotification(): Promise<void> {
  * Initialize all notification schedules.
  */
 export async function initNotifications(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
   const granted = await requestPermissions();
   if (!granted) return;
 

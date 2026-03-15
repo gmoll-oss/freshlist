@@ -2,10 +2,11 @@ import {
   View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet,
   KeyboardAvoidingView, Platform, Animated,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Send, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, Mic, Send, Trash2 } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { useChat, ChatMessage } from '../hooks/useChat';
 
@@ -127,6 +128,7 @@ export default function ChatScreen() {
   const { messages, status, error, sendMessage, clearHistory, loadContext } = useChat();
   const [input, setInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     loadContext();
@@ -140,6 +142,15 @@ export default function ChatScreen() {
     if (!input.trim() || status === 'thinking') return;
     sendMessage(input);
     setInput('');
+  }
+
+  function handleMicPress() {
+    // Focus the input to bring up the keyboard — user can tap the iOS dictation mic
+    inputRef.current?.focus();
+    Alert.alert(
+      'Dictado por voz',
+      'Pulsa el icono del microfono en tu teclado para dictar un mensaje.',
+    );
   }
 
   function handleQuickSuggestion(text: string) {
@@ -178,6 +189,17 @@ export default function ChatScreen() {
               <Text style={s.emptySub}>
                 Preguntame que cocinar, que caduca pronto o pide cambios en tu plan
               </Text>
+              <View style={s.suggestionsCol}>
+                {QUICK_SUGGESTIONS.map((text) => (
+                  <TouchableOpacity
+                    key={text}
+                    style={s.suggestionChip}
+                    onPress={() => handleQuickSuggestion(text)}
+                  >
+                    <Text style={s.suggestionText}>{text}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           )}
 
@@ -200,28 +222,12 @@ export default function ChatScreen() {
           )}
         </ScrollView>
 
-        {/* Quick suggestions */}
-        {messages.length === 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.suggestionsRow}
-          >
-            {QUICK_SUGGESTIONS.map((text) => (
-              <TouchableOpacity
-                key={text}
-                style={s.suggestionChip}
-                onPress={() => handleQuickSuggestion(text)}
-              >
-                <Text style={s.suggestionText}>{text}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+        {/* Quick suggestions moved to empty state above */}
 
         {/* Input bar */}
         <View style={s.inputBar}>
           <TextInput
+            ref={inputRef}
             style={s.input}
             placeholder="Escribe un mensaje..."
             placeholderTextColor={colors.textDim}
@@ -232,15 +238,29 @@ export default function ChatScreen() {
             multiline
             maxLength={500}
           />
-          <TouchableOpacity
-            style={[s.sendBtn, (!input.trim() || status === 'thinking') && { opacity: 0.4 }]}
-            onPress={handleSend}
-            disabled={!input.trim() || status === 'thinking'}
-            accessibilityLabel="Enviar mensaje"
-            accessibilityRole="button"
-          >
-            <Send size={18} color="white" strokeWidth={2.5} />
-          </TouchableOpacity>
+
+          {/* Mic button — shown when input is empty */}
+          {!input.trim() ? (
+            <TouchableOpacity
+              style={s.micBtn}
+              onPress={handleMicPress}
+              disabled={status === 'thinking'}
+              accessibilityLabel="Dictar mensaje"
+              accessibilityRole="button"
+            >
+              <Mic size={18} color={colors.green600} strokeWidth={2.5} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[s.sendBtn, status === 'thinking' && { opacity: 0.4 }]}
+              onPress={handleSend}
+              disabled={status === 'thinking'}
+              accessibilityLabel="Enviar mensaje"
+              accessibilityRole="button"
+            >
+              <Send size={18} color="white" strokeWidth={2.5} />
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -282,12 +302,12 @@ const s = StyleSheet.create({
   errorText: { fontSize: 12, fontFamily: fonts.medium, color: colors.red500 },
 
   // Suggestions
-  suggestionsRow: { paddingHorizontal: spacing.lg, paddingBottom: 8, gap: 8 },
+  suggestionsCol: { width: '100%', gap: 10, marginTop: 24 },
   suggestionChip: {
-    backgroundColor: colors.card, borderRadius: radius.full, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.green50, borderRadius: radius.lg, paddingHorizontal: 20, paddingVertical: 14,
+    borderWidth: 1, borderColor: colors.green200,
   },
-  suggestionText: { fontSize: 13, fontFamily: fonts.medium, color: colors.green700 },
+  suggestionText: { fontSize: 14, fontFamily: fonts.medium, color: colors.green700, textAlign: 'center' },
 
   // Input
   inputBar: {
@@ -305,5 +325,13 @@ const s = StyleSheet.create({
   sendBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: colors.green600,
     justifyContent: 'center', alignItems: 'center',
+  },
+  micBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: colors.green50, borderWidth: 1.5, borderColor: colors.green200,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  micBtnActive: {
+    backgroundColor: colors.green600, borderColor: colors.green600,
   },
 });

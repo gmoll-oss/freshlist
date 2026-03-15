@@ -1,10 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, TextInput } from 'react-native';
+import { Alert } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback } from 'react';
-import { useRouter } from 'expo-router';
-import { Camera, Receipt, Sparkles, Image, RefreshCw, Barcode, X } from 'lucide-react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Camera, Receipt, Sparkles, Image, RefreshCw, Barcode, X, Upload } from 'lucide-react-native';
 import { CameraView } from 'expo-camera';
-import * as Haptics from 'expo-haptics';
+import Haptics from '../../utils/haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { useScan } from '../../hooks/useScan';
 import { fetchPantryItems } from '../../services/supabase/pantry';
@@ -13,12 +14,40 @@ import { lookupBarcode } from '../../services/barcode/barcodeService';
 type ScanMode = 'ticket' | 'fridge' | 'barcode';
 
 export default function ScanScreen() {
-  const [mode, setMode] = useState<ScanMode>('ticket');
+  const { initialMode } = useLocalSearchParams<{ initialMode?: ScanMode }>();
+  const [mode, setMode] = useState<ScanMode>(initialMode ?? 'ticket');
   const [barcodeActive, setBarcodeActive] = useState(false);
   const [barcodeProcessing, setBarcodeProcessing] = useState(false);
   const [lastScannedCode, setLastScannedCode] = useState('');
+  const [webBarcodeInput, setWebBarcodeInput] = useState('');
   const scan = useScan();
   const router = useRouter();
+
+  const handleWebBarcodeSubmit = useCallback(async () => {
+    const code = webBarcodeInput.trim();
+    if (!code || barcodeProcessing) return;
+    setBarcodeProcessing(true);
+    try {
+      const product = await lookupBarcode(code);
+      if (product) {
+        scan.setBarcodeResult(product);
+        router.push('/products');
+      } else {
+        Alert.alert(
+          'Producto no encontrado',
+          `Codigo: ${code}\nNo encontramos este producto en nuestra base de datos. Puedes anadirlo manualmente.`,
+          [
+            { text: 'Anadir manual', onPress: () => router.push('/products') },
+            { text: 'Intentar otro', onPress: () => setWebBarcodeInput('') },
+          ],
+        );
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo buscar el producto');
+    } finally {
+      setBarcodeProcessing(false);
+    }
+  }, [webBarcodeInput, barcodeProcessing, scan, router]);
 
   const handleBarcodeScanned = useCallback(async ({ data, type }: { data: string; type: string }) => {
     if (barcodeProcessing || data === lastScannedCode) return;
@@ -150,7 +179,62 @@ export default function ScanScreen() {
         </View>
 
         {/* Camera area */}
-        {mode === 'barcode' && barcodeActive ? (
+        {Platform.OS === 'web' ? (
+          <View style={s.camera}>
+            {scan.status === 'processing' ? (
+              <View style={s.processingBox}>
+                <ActivityIndicator size="large" color={colors.green400} />
+                <Text style={s.processingText}>Analizando imagen...</Text>
+              </View>
+            ) : scan.status === 'error' ? (
+              <View style={s.processingBox}>
+                <Text style={s.errorText}>{scan.error}</Text>
+                <TouchableOpacity style={s.retryBtn} onPress={handleRetry}>
+                  <RefreshCw size={16} color="white" strokeWidth={2.2} />
+                  <Text style={s.retryText}>Reintentar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={s.webUploadArea}>
+                {mode === 'barcode'
+                  ? <Barcode size={32} color={colors.green400} strokeWidth={1.8} />
+                  : <Upload size={32} color={colors.green400} strokeWidth={1.8} />
+                }
+                <Text style={s.webUploadTitle}>
+                  {mode === 'ticket' ? 'Sube una foto del ticket' : mode === 'fridge' ? 'Sube una foto de tu nevera' : 'Escanea un codigo de barras'}
+                </Text>
+                <TouchableOpacity style={s.webUploadBtn} onPress={handleGallery} disabled={isWorking}>
+                  <Image size={18} color="white" strokeWidth={2} />
+                  <Text style={s.webUploadBtnText}>Elegir foto</Text>
+                </TouchableOpacity>
+                {mode === 'barcode' && (
+                  <View style={s.webBarcodeRow}>
+                    <TextInput
+                      style={s.webBarcodeInput}
+                      placeholder="O escribe el codigo de barras..."
+                      placeholderTextColor={colors.textMuted}
+                      value={webBarcodeInput}
+                      onChangeText={setWebBarcodeInput}
+                      onSubmitEditing={handleWebBarcodeSubmit}
+                      keyboardType="numeric"
+                      returnKeyType="search"
+                    />
+                    <TouchableOpacity
+                      style={[s.webBarcodeSubmit, !webBarcodeInput.trim() && { opacity: 0.5 }]}
+                      onPress={handleWebBarcodeSubmit}
+                      disabled={!webBarcodeInput.trim() || barcodeProcessing}
+                    >
+                      {barcodeProcessing
+                        ? <ActivityIndicator size="small" color="white" />
+                        : <Text style={s.webBarcodeSubmitText}>Buscar</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        ) : mode === 'barcode' && barcodeActive ? (
           <View style={s.camera}>
             <CameraView
               style={StyleSheet.absoluteFillObject}
@@ -191,31 +275,33 @@ export default function ScanScreen() {
           </View>
         )}
 
-        {/* Capture + Gallery */}
-        {mode === 'barcode' ? (
-          <View style={s.captureRow}>
-            <TouchableOpacity
-              style={[s.captureOuter, barcodeActive && { borderColor: colors.red400 }]}
-              onPress={() => { setBarcodeActive(!barcodeActive); setLastScannedCode(''); }}
-            >
-              <View style={[s.captureInner, barcodeActive && { backgroundColor: colors.red400 }]}>
-                {barcodeActive
-                  ? <X size={24} color="white" strokeWidth={2.5} />
-                  : <Barcode size={24} color="white" strokeWidth={2} />
-                }
-              </View>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={s.captureRow}>
-            <TouchableOpacity style={s.galleryBtn} onPress={handleGallery} disabled={isWorking}>
-              <Image size={22} color={colors.textSec} strokeWidth={2} />
-            </TouchableOpacity>
-            <TouchableOpacity style={s.captureOuter} onPress={handleCapture} disabled={isWorking}>
-              <View style={[s.captureInner, isWorking && { opacity: 0.4 }]} />
-            </TouchableOpacity>
-            <View style={{ width: 44 }} />
-          </View>
+        {/* Capture + Gallery (native only) */}
+        {Platform.OS !== 'web' && (
+          mode === 'barcode' ? (
+            <View style={s.captureRow}>
+              <TouchableOpacity
+                style={[s.captureOuter, barcodeActive && { borderColor: colors.red400 }]}
+                onPress={() => { setBarcodeActive(!barcodeActive); setLastScannedCode(''); }}
+              >
+                <View style={[s.captureInner, barcodeActive && { backgroundColor: colors.red400 }]}>
+                  {barcodeActive
+                    ? <X size={24} color="white" strokeWidth={2.5} />
+                    : <Barcode size={24} color="white" strokeWidth={2} />
+                  }
+                </View>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={s.captureRow}>
+              <TouchableOpacity style={s.galleryBtn} onPress={handleGallery} disabled={isWorking}>
+                <Image size={22} color={colors.textSec} strokeWidth={2} />
+              </TouchableOpacity>
+              <TouchableOpacity style={s.captureOuter} onPress={handleCapture} disabled={isWorking}>
+                <View style={[s.captureInner, isWorking && { opacity: 0.4 }]} />
+              </TouchableOpacity>
+              <View style={{ width: 44 }} />
+            </View>
+          )
         )}
 
         {/* Tips */}
@@ -280,4 +366,24 @@ const s = StyleSheet.create({
   tipsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   tipsTitle: { fontSize: 12, fontFamily: fonts.medium, color: colors.textSec },
   tip: { fontSize: 11, color: colors.textMuted, fontFamily: fonts.regular, marginTop: 3 },
+  webUploadArea: { alignItems: 'center', justifyContent: 'center', gap: 12, flex: 1 },
+  webUploadTitle: { fontSize: 14, fontFamily: fonts.medium, color: colors.textSec, textAlign: 'center' },
+  webUploadBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.green600, paddingHorizontal: 20, paddingVertical: 12,
+    borderRadius: radius.md,
+  },
+  webUploadBtnText: { fontSize: 14, fontFamily: fonts.bold, color: 'white' },
+  webBarcodeRow: { flexDirection: 'row', gap: 8, width: '100%', paddingHorizontal: 16, marginTop: 4 },
+  webBarcodeInput: {
+    flex: 1, backgroundColor: colors.surface, borderRadius: radius.md,
+    paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 14, fontFamily: fonts.regular, color: colors.text,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  webBarcodeSubmit: {
+    backgroundColor: colors.green600, borderRadius: radius.md,
+    paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center',
+  },
+  webBarcodeSubmitText: { fontSize: 13, fontFamily: fonts.bold, color: 'white' },
 });

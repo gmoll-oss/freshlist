@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Heart, Timer, Users, CookingPot, Trash2 } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import Haptics from '../utils/haptics';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { fetchFavorites, deleteFavorite, RecipeFavorite } from '../services/supabase/favorites';
 import { setCurrentMeal } from '../services/mealPlan/mealPlanStore';

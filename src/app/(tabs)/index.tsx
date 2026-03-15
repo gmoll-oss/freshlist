@@ -1,10 +1,11 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { Alert } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Flame, CookingPot, ChefHat, Timer, UtensilsCrossed, ChevronRight, AlertTriangle, Receipt, Package, Sparkles, ScanLine, MessageCircle, ArrowRight, Check, Coffee, Apple, WifiOff } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import { Flame, CookingPot, ChefHat, Timer, UtensilsCrossed, ChevronRight, AlertTriangle, Receipt, Package, Sparkles, ScanLine, MessageCircle, ArrowRight, Check, Coffee, Apple, WifiOff, ClipboardCheck } from 'lucide-react-native';
+import Haptics from '../../utils/haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
 import { useHomeData } from '../../hooks/useHomeData';
@@ -159,6 +160,20 @@ export default function HomeScreen() {
         </TouchableOpacity>
         </Animated.View>
 
+        {/* 2b. Daily check-in card */}
+        <Animated.View entering={FadeInDown.delay(150).duration(400)}>
+        <TouchableOpacity style={s.checkinCard} onPress={() => router.push('/daily-checkin' as any)}>
+          <View style={s.checkinIcon}>
+            <ClipboardCheck size={18} color={colors.violet400} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.checkinTitle}>Revisa tu despensa</Text>
+            <Text style={s.checkinSub}>Marca lo que has consumido hoy</Text>
+          </View>
+          <ChevronRight size={16} color={colors.textDim} />
+        </TouchableOpacity>
+        </Animated.View>
+
         {/* 3. Mi dia — multi-meal widget */}
         {todayMeals.length > 0 ? (
           <View style={s.dayWidget}>
@@ -306,6 +321,15 @@ const s = StyleSheet.create({
   pantryTitle: { fontSize: 14, fontFamily: fonts.bold, color: colors.text },
   pantryWarn: { fontSize: 11, color: colors.orange500, fontFamily: fonts.medium, marginTop: 2 },
 
+  // Daily check-in
+  checkinCard: {
+    backgroundColor: colors.card, borderRadius: radius.lg, padding: 14, borderWidth: 1, borderColor: colors.border,
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: spacing.md,
+  },
+  checkinIcon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.violet50, justifyContent: 'center', alignItems: 'center' },
+  checkinTitle: { fontSize: 14, fontFamily: fonts.bold, color: colors.text },
+  checkinSub: { fontSize: 11, color: colors.textMuted, fontFamily: fonts.regular, marginTop: 2 },
+
   // Mi dia widget
   dayWidget: { marginBottom: spacing.md },
   dayWidgetHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
@@ -352,7 +376,7 @@ const s = StyleSheet.create({
 
   // Chat FAB
   fab: {
-    position: 'absolute', bottom: 100, right: 20,
+    position: 'absolute', bottom: 24, right: 20,
     width: 56, height: 56, borderRadius: 28,
     backgroundColor: colors.green600,
     justifyContent: 'center', alignItems: 'center',

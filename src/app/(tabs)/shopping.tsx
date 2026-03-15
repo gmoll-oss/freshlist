@@ -1,9 +1,10 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert, Share, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Share, RefreshControl } from 'react-native';
+import { Alert } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import { ShoppingCart, UtensilsCrossed, Package, Plus, Check, Trash2, X, Share2, PackageCheck, Sparkles, LayoutList, Tag, Lightbulb } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import Haptics from '../../utils/haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { SkeletonCard } from '../../components/ui/Skeleton';
 import { SwipeToDelete } from '../../components/ui/SwipeToDelete';

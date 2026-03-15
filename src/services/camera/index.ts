@@ -1,5 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
+import { Alert } from '../../utils/alert';
 
 async function requestCameraPermission(): Promise<boolean> {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();

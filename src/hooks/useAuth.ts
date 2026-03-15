@@ -2,11 +2,12 @@ import { useState, useEffect, createContext, useContext, useCallback } from 'rea
 import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 import * as AuthSession from 'expo-auth-session';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import type { User } from '@supabase/supabase-js';
 import React from 'react';
+
+const AppleAuthentication = Platform.OS === 'ios' ? require('expo-apple-authentication') : null;
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -20,6 +21,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   skipAuth: () => void;
 }
@@ -112,6 +114,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   }, []);
 
+  const signUpWithEmail = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+  }, []);
+
   const signOut = useCallback(async () => {
     setSkipped(false);
     await supabase.auth.signOut();
@@ -120,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!user || skipped;
 
   return React.createElement(AuthContext.Provider, {
-    value: { user, loading, isAuthenticated, skipped, signInWithGoogle, signInWithApple, signInWithEmail, signOut, skipAuth },
+    value: { user, loading, isAuthenticated, skipped, signInWithGoogle, signInWithApple, signInWithEmail, signUpWithEmail, signOut, skipAuth },
     children,
   });
 }

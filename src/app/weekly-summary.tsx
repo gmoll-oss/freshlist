@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, CookingPot, CalendarCheck, Leaf, Trash2, TrendingUp, Sparkles, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, CookingPot, CalendarCheck, Leaf, Trash2, TrendingUp, Sparkles, ChevronRight } from 'lucide-react-native';
 import ReAnimated, { FadeInDown } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { generateAndSaveSummary, fetchWeeklySummary, getPreviousWeekStart, getCurrentWeekStart, updateAiFeedback } from '../services/supabase/weeklySummary';
@@ -76,24 +76,39 @@ export default function WeeklySummaryScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={colors.green600} />
-        <Text style={{ marginTop: 12, fontFamily: fonts.medium, color: colors.textMuted, fontSize: 13 }}>
-          Preparando tu resumen...
-        </Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+        <View style={s.header}>
+          <TouchableOpacity onPress={() => router.back()} style={s.headerBack}>
+            <ChevronLeft size={22} color={colors.text} strokeWidth={2} />
+          </TouchableOpacity>
+          <Text style={s.title}>Resumen Semanal</Text>
+          <View style={{ width: 32 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={colors.green600} />
+          <Text style={{ marginTop: 12, fontFamily: fonts.medium, color: colors.textMuted, fontSize: 13 }}>
+            Preparando tu resumen...
+          </Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   if (!summary) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-        <Text style={{ fontFamily: fonts.medium, color: colors.textMuted, fontSize: 14, textAlign: 'center' }}>
-          No hay datos suficientes para generar un resumen esta semana.
-        </Text>
-        <TouchableOpacity style={[s.backBtn, { marginTop: 20 }]} onPress={() => router.back()}>
-          <Text style={s.backBtnText}>Volver</Text>
-        </TouchableOpacity>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+        <View style={s.header}>
+          <TouchableOpacity onPress={() => router.back()} style={s.headerBack}>
+            <ChevronLeft size={22} color={colors.text} strokeWidth={2} />
+          </TouchableOpacity>
+          <Text style={s.title}>Resumen Semanal</Text>
+          <View style={{ width: 32 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontFamily: fonts.medium, color: colors.textMuted, fontSize: 14, textAlign: 'center' }}>
+            No hay datos suficientes para generar un resumen esta semana.
+          </Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -112,7 +127,7 @@ export default function WeeklySummaryScreen() {
         {/* Header */}
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.headerBack}>
-            <ArrowLeft size={20} color={colors.text} strokeWidth={2} />
+            <ChevronLeft size={22} color={colors.text} strokeWidth={2} />
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'center' }}>
             <View style={s.headerRow}>

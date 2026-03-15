@@ -63,6 +63,7 @@ export default function OnboardingScreen() {
 
   function handleBack() {
     if (step > 0) setStep(step - 1);
+    else router.back();
   }
 
   function toggleDiet(item: string) {
@@ -278,7 +279,12 @@ export default function OnboardingScreen() {
             <Text style={s.backText}>Atras</Text>
           </TouchableOpacity>
         ) : (
-          <View />
+          <TouchableOpacity onPress={async () => {
+            await savePreferences({ onboarding_done: true });
+            router.replace('/(tabs)');
+          }}>
+            <Text style={{ fontSize: 13, fontFamily: fonts.medium, color: colors.textMuted }}>Saltar</Text>
+          </TouchableOpacity>
         )}
         <TouchableOpacity
           style={[s.nextBtn, !canProceed() && s.nextBtnDisabled]}

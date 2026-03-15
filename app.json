@@ -17,10 +17,13 @@
       "bundleIdentifier": "com.freshlist.app",
       "infoPlist": {
         "NSCameraUsageDescription": "FreshList necesita la camara para escanear tickets y fotos de tu nevera.",
-        "NSPhotoLibraryUsageDescription": "FreshList necesita acceso a tus fotos para seleccionar imagenes de tickets."
+        "NSPhotoLibraryUsageDescription": "FreshList necesita acceso a tus fotos para seleccionar imagenes de tickets.",
+        "NSMicrophoneUsageDescription": "FreshList necesita el microfono para convertir tu voz en texto.",
+        "NSSpeechRecognitionUsageDescription": "FreshList usa el reconocimiento de voz para escribir mensajes hablando."
       }
     },
     "android": {
+      "package": "com.freshlist.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -30,7 +33,9 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -68,7 +73,21 @@
           "icon": "./assets/notification-icon.png",
           "color": "#059669"
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "FreshList necesita el microfono para convertir tu voz en texto.",
+          "speechRecognitionPermission": "FreshList usa el reconocimiento de voz para escribir mensajes hablando."
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "eb33646b-acb3-4bb5-811f-abb3a6f959fb"
+      }
+    },
+    "owner": "gmoll22"
   }
 }

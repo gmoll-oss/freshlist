@@ -1,8 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { Alert } from '../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import Haptics from '../utils/haptics';
 import { ChevronLeft, Plus, Check, Trash2, ShoppingCart, Lightbulb } from 'lucide-react-native';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import {

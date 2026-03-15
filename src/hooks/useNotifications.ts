@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
-import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { initNotifications } from '../services/notifications';
+
+const Notifications = Platform.OS !== 'web' ? require('expo-notifications') : null;
 
 /**
  * Hook that initializes notification permissions and schedules on mount.
@@ -8,6 +10,8 @@ import { initNotifications } from '../services/notifications';
  */
 export function useNotifications() {
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     initNotifications().catch(() => {
       // Permissions denied or other error — silently ignore
     });

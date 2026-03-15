@@ -6,10 +6,10 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   Modal,
 } from 'react-native';
+import { Alert } from '../../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
@@ -34,7 +34,7 @@ import {
   Edit3,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import Haptics from '../../utils/haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { SkeletonCard } from '../../components/ui/Skeleton';
 import { SwipeToDelete } from '../../components/ui/SwipeToDelete';
@@ -301,28 +301,22 @@ export default function PantryTabScreen() {
 
       {/* Category filter chips */}
       {activeItems.length > 0 && (
-        <FlatList
-          horizontal
-          data={[null, ...ALL_CATEGORIES]}
-          keyExtractor={(item) => item ?? 'all'}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.catRow}
-          renderItem={({ item: cat }) => {
+        <View style={s.catRow}>
+          {[null, ...ALL_CATEGORIES].map((cat) => {
             const active = filterCategory === cat;
-            const CatIcon = cat ? (CATEGORY_ICONS[cat] ?? Package) : null;
             return (
               <TouchableOpacity
+                key={cat ?? 'all'}
                 style={[s.catChip, active && s.catChipActive]}
                 onPress={() => setFilterCategory(active ? null : cat)}
               >
-                {CatIcon && <CatIcon size={12} color={active ? 'white' : colors.textSec} strokeWidth={2} />}
                 <Text style={[s.catChipText, active && s.catChipTextActive]}>
                   {cat ?? 'Todos'}
                 </Text>
               </TouchableOpacity>
             );
-          }}
-        />
+          })}
+        </View>
       )}
 
       {/* Manual add + rescan */}
@@ -341,7 +335,7 @@ export default function PantryTabScreen() {
             <Plus size={16} color="white" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={s.rescanBtn} onPress={() => router.push('/(tabs)/scan' as any)}>
+        <TouchableOpacity style={s.rescanBtn} onPress={() => router.push({ pathname: '/(tabs)/scan', params: { initialMode: 'fridge' } } as any)}>
           <ScanLine size={16} color={colors.green600} strokeWidth={2} />
           <Text style={s.rescanText}>Escanear</Text>
         </TouchableOpacity>
@@ -394,7 +388,7 @@ export default function PantryTabScreen() {
                   : 'Escanea un ticket o foto de nevera para añadir productos'}
               </Text>
               {!searchQuery && !filterCategory && (
-                <TouchableOpacity style={s.emptyCta} onPress={() => router.push('/(tabs)/scan' as any)}>
+                <TouchableOpacity style={s.emptyCta} onPress={() => router.push({ pathname: '/(tabs)/scan', params: { initialMode: 'fridge' } } as any)}>
                   <ScanLine size={14} color="white" strokeWidth={2.5} />
                   <Text style={s.emptyCtaText}>Escanear ahora</Text>
                 </TouchableOpacity>
@@ -463,15 +457,16 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   searchInput: { flex: 1, fontSize: 13, fontFamily: fonts.regular, color: colors.text, padding: 0 },
-  catRow: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: 6 },
+  catRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: 8 },
   catChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.full,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.full,
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    minHeight: 36,
   },
   catChipActive: { backgroundColor: colors.green600, borderColor: colors.green600 },
-  catChipText: { fontSize: 10, fontFamily: fonts.medium, color: colors.textSec },
-  catChipTextActive: { color: 'white', fontFamily: fonts.bold },
+  catChipText: { fontSize: 13, color: colors.textSec },
+  catChipTextActive: { color: 'white' },
   actionRow: {
     flexDirection: 'row', gap: 8,
     paddingHorizontal: spacing.lg, marginBottom: spacing.md,

@@ -4,6 +4,7 @@ import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_700Bold, DMSans_9
 import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useEffect, useState, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../constants/theme';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
@@ -25,47 +26,66 @@ function AuthGate() {
   useEffect(() => {
     if (loading) return;
 
+    const onWelcome = segments[0] === 'welcome';
     const onLogin = segments[0] === 'login';
     const onOnboarding = segments[0] === 'onboarding';
 
-    if (!isAuthenticated && !onLogin) {
-      router.replace('/login');
+    // If on welcome screen, don't interfere
+    if (onWelcome) {
       setReady(true);
       return;
     }
 
-    if (!isAuthenticated) {
-      setReady(true);
-      return;
-    }
-
-    // Skip auth: go straight to tabs
-    if (skipped) {
-      if (onLogin) router.replace('/(tabs)');
-      setReady(true);
-      return;
-    }
-
-    // Already checked onboarding — don't re-check on every segment change
-    if (checkedRef.current) {
-      setReady(true);
-      return;
-    }
-
-    // Authenticated user — check onboarding status once
-    checkedRef.current = true;
-    fetchPreferences()
-      .then((prefs) => {
-        if (prefs?.onboarding_done) {
-          if (onLogin || onOnboarding) router.replace('/(tabs)');
-        } else {
-          if (!onOnboarding) router.replace('/onboarding');
+    // First time: check if welcome was seen
+    if (!checkedRef.current) {
+      checkedRef.current = true;
+      AsyncStorage.getItem('welcome_seen').then((val) => {
+        if (!val) {
+          router.replace('/welcome');
+          setReady(true);
+          return;
         }
-      })
-      .catch(() => {
-        if (!onOnboarding) router.replace('/onboarding');
-      })
-      .finally(() => setReady(true));
+        // Welcome seen, proceed with auth check
+        routeAfterWelcome();
+      }).catch(() => routeAfterWelcome());
+      return;
+    }
+
+    routeAfterWelcome();
+
+    function routeAfterWelcome() {
+      if (!isAuthenticated && !onLogin) {
+        router.replace('/login');
+        setReady(true);
+        return;
+      }
+
+      if (!isAuthenticated) {
+        setReady(true);
+        return;
+      }
+
+      // Skip auth: go straight to tabs
+      if (skipped) {
+        if (onLogin) router.replace('/(tabs)');
+        setReady(true);
+        return;
+      }
+
+      // Authenticated user — check onboarding status
+      fetchPreferences()
+        .then((prefs) => {
+          if (prefs?.onboarding_done) {
+            if (onLogin || onOnboarding) router.replace('/(tabs)');
+          } else {
+            if (!onOnboarding) router.replace('/onboarding');
+          }
+        })
+        .catch(() => {
+          if (!onOnboarding) router.replace('/onboarding');
+        })
+        .finally(() => setReady(true));
+    }
   }, [isAuthenticated, loading, segments]);
 
   if (loading || !ready) {

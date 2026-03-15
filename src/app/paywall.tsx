@@ -1,11 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { Alert } from '../utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Check, Sparkles, Crown, Zap, Users, Brain } from 'lucide-react-native';
-import { PurchasesPackage } from 'react-native-purchases';
 import { colors, fonts, radius, spacing } from '../constants/theme';
-import { getOfferings, purchasePackage, restorePurchases } from '../services/purchases/revenuecat';
+import { getOfferings, purchasePackage, restorePurchases, PurchasesPackage } from '../services/purchases/revenuecat';
 
 const PREMIUM_FEATURES = [
   { Icon: Brain, label: 'IA ilimitada', desc: 'Planes de comida y chat sin limites' },
