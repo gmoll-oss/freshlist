@@ -8,6 +8,7 @@ import { CameraView } from 'expo-camera';
 import Haptics from '../../utils/haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { useScan } from '../../hooks/useScan';
+import { fetchPantryItems } from '../../services/supabase/pantry';
 import { lookupBarcode } from '../../services/barcode/barcodeService';
 
 type ScanMode = 'ticket' | 'fridge' | 'barcode';
@@ -77,10 +78,40 @@ export default function ScanScreen() {
     }
   }, [barcodeProcessing, lastScannedCode, scan, router]);
 
-  /** After capturing a fridge photo, always add new products */
+  /** After capturing a fridge photo, ask what to do */
   async function handleFridgeResult(base64: string) {
-    const result = await scan.processImage(base64, 'fridge');
-    if (result) router.push('/products');
+    let pantryCount = 0;
+    try {
+      const items = await fetchPantryItems();
+      pantryCount = items.filter((i) => i.status === 'fresh' || i.status === 'expiring').length;
+    } catch {}
+
+    if (pantryCount > 0) {
+      Alert.alert(
+        'Que quieres hacer?',
+        undefined,
+        [
+          {
+            text: 'Anadir productos',
+            onPress: async () => {
+              const result = await scan.processImage(base64, 'fridge');
+              if (result) router.push('/products');
+            },
+          },
+          {
+            text: 'Reescanear nevera',
+            onPress: async () => {
+              const ok = await scan.processRescan(base64);
+              if (ok) router.push('/rescan-results');
+            },
+          },
+          { text: 'Cancelar', style: 'cancel' },
+        ],
+      );
+    } else {
+      const result = await scan.processImage(base64, 'fridge');
+      if (result) router.push('/products');
+    }
   }
 
   async function handleCapture() {
