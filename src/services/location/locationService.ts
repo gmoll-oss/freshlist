@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../../lib/supabase';
 import type { UserLocation, NearbyStore } from '../../types';
 
 const LOCATION_KEY = 'user_location';
@@ -73,27 +74,28 @@ async function cacheLocation(location: UserLocation): Promise<void> {
 }
 
 /**
- * Find nearby stores based on user location.
- * In production, calls a backend API with store locations database.
+ * Find nearby stores using Supabase RPC (Haversine function in DB).
  */
-const STORES_API_BASE = process.env.EXPO_PUBLIC_OFFERS_API_URL || '';
-
 export async function findNearbyStores(
   location: UserLocation,
-  radiusKm: number = 5,
+  radiusKm: number = 10,
 ): Promise<NearbyStore[]> {
-  if (!STORES_API_BASE) return [];
-
   try {
-    const params = new URLSearchParams({
-      lat: String(location.latitude),
-      lng: String(location.longitude),
-      radius: String(radiusKm),
+    const { data, error } = await supabase.rpc('nearby_stores', {
+      user_lat: location.latitude,
+      user_lng: location.longitude,
+      radius_km: radiusKm,
     });
-    const res = await fetch(`${STORES_API_BASE}/stores/nearby?${params.toString()}`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.stores ?? [];
+
+    if (error) return [];
+
+    return (data || []).map((s: any) => ({
+      store_id: s.store_id,
+      store_name: s.store_name,
+      distance_km: s.distance_km,
+      address: s.address || '',
+      offers_count: s.offers_count || 0,
+    }));
   } catch {
     return [];
   }

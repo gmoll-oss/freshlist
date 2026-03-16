@@ -1,52 +1,192 @@
+import { supabase } from '../../lib/supabase';
 import type { SupermarketOffer, OfferMatch, UserLocation, ShoppingItem } from '../../types';
 import { STORES } from '../../constants/stores';
 
 /**
- * Fetch current offers from supermarkets.
+ * Fetch current offers from Supabase Edge Function or directly from DB.
  *
- * Architecture: This service acts as an abstraction layer over supermarket APIs.
- * In production, it would call individual store APIs or a unified offers aggregator.
+ * Architecture:
+ * 1. Edge Function `sync-offers` runs on a schedule (cron) scraping 9 supermarkets
+ * 2. Offers are stored in `supermarket_offers` table
+ * 3. This service reads from the table (via Edge Function or direct query)
  *
- * Supported integrations (to be connected):
- * - Mercadona: Internal API (no public API — requires scraping or partnership)
- * - Lidl: lidl.es/ofertas
- * - Carrefour: API disponible via carrefour.es
- * - DIA: API disponible via dia.es
- * - Aldi: aldi.es/ofertas
- * - Consum: consum.es
- *
- * For MVP, we use a backend proxy endpoint that aggregates offers.
+ * Supported supermarkets:
+ * Mercadona, Lidl, Carrefour, DIA, Aldi, Alcampo, Consum, Eroski, BonPreu
  */
 
-const OFFERS_API_BASE = process.env.EXPO_PUBLIC_OFFERS_API_URL || '';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 
 export async function fetchOffers(
   location: UserLocation | null,
   storeIds?: string[],
 ): Promise<SupermarketOffer[]> {
-  if (!OFFERS_API_BASE) {
-    // No API configured — return empty (graceful degradation)
-    return [];
-  }
-
   try {
-    const params = new URLSearchParams();
-    if (location) {
-      params.set('lat', String(location.latitude));
-      params.set('lng', String(location.longitude));
-      if (location.postal_code) params.set('postal_code', location.postal_code);
-    }
+    // Query offers directly from Supabase table
+    let query = supabase
+      .from('supermarket_offers')
+      .select('*')
+      .or(`valid_until.is.null,valid_until.gte.${new Date().toISOString().split('T')[0]}`)
+      .order('discount_pct', { ascending: false, nullsFirst: false })
+      .limit(200);
+
     if (storeIds?.length) {
-      params.set('stores', storeIds.join(','));
+      query = query.in('store_id', storeIds);
     }
 
-    const res = await fetch(`${OFFERS_API_BASE}/offers?${params.toString()}`);
-    if (!res.ok) return [];
+    const { data, error } = await query;
 
-    const data = await res.json();
-    return data.offers ?? [];
+    if (error) {
+      console.warn('Error fetching offers:', error.message);
+      return [];
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      store_id: row.store_id,
+      store_name: row.store_name,
+      product_name: row.product_name,
+      original_price: row.original_price ? Number(row.original_price) : 0,
+      offer_price: Number(row.offer_price),
+      discount_pct: row.discount_pct ?? 0,
+      valid_until: row.valid_until ?? '',
+      category: row.category ?? '',
+      image_url: row.image_url,
+    }));
   } catch {
     return [];
+  }
+}
+
+/**
+ * Search offers by product name.
+ */
+export async function searchOffers(query: string): Promise<SupermarketOffer[]> {
+  try {
+    const { data, error } = await supabase
+      .from('supermarket_offers')
+      .select('*')
+      .ilike('product_name', `%${query}%`)
+      .or(`valid_until.is.null,valid_until.gte.${new Date().toISOString().split('T')[0]}`)
+      .order('discount_pct', { ascending: false, nullsFirst: false })
+      .limit(50);
+
+    if (error) return [];
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      store_id: row.store_id,
+      store_name: row.store_name,
+      product_name: row.product_name,
+      original_price: row.original_price ? Number(row.original_price) : 0,
+      offer_price: Number(row.offer_price),
+      discount_pct: row.discount_pct ?? 0,
+      valid_until: row.valid_until ?? '',
+      category: row.category ?? '',
+      image_url: row.image_url,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get sync status for all stores (last scrape time, offer counts).
+ */
+export async function getSyncStatus(): Promise<{
+  store_id: string;
+  status: string;
+  offers_count: number;
+  synced_at: string;
+}[]> {
+  try {
+    const { data, error } = await supabase
+      .from('offer_sync_log')
+      .select('*')
+      .order('synced_at', { ascending: false })
+      .limit(20);
+
+    if (error) return [];
+
+    // Keep latest per store
+    const byStore: Record<string, any> = {};
+    for (const log of data || []) {
+      if (!byStore[log.store_id]) {
+        byStore[log.store_id] = log;
+      }
+    }
+    return Object.values(byStore);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get user's favorite stores.
+ */
+export async function getFavoriteStores(): Promise<string[]> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('user_favorite_stores')
+      .select('store_id')
+      .eq('user_id', user.id);
+
+    if (error) return [];
+    return (data || []).map((r: any) => r.store_id);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Toggle a favorite store for the current user.
+ */
+export async function toggleFavoriteStore(storeId: string): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    // Check if already favorited
+    const { data: existing } = await supabase
+      .from('user_favorite_stores')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('store_id', storeId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from('user_favorite_stores').delete().eq('id', existing.id);
+      return false; // Removed
+    } else {
+      await supabase.from('user_favorite_stores').insert({ user_id: user.id, store_id: storeId });
+      return true; // Added
+    }
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get total offer count per store.
+ */
+export async function getOfferCountsByStore(): Promise<Record<string, number>> {
+  try {
+    const { data, error } = await supabase
+      .from('supermarket_offers')
+      .select('store_id')
+      .or(`valid_until.is.null,valid_until.gte.${new Date().toISOString().split('T')[0]}`);
+
+    if (error) return {};
+
+    const counts: Record<string, number> = {};
+    for (const row of data || []) {
+      counts[row.store_id] = (counts[row.store_id] || 0) + 1;
+    }
+    return counts;
+  } catch {
+    return {};
   }
 }
 
