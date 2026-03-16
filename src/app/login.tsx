@@ -11,12 +11,17 @@ export default function LoginScreen() {
   const { signInWithEmail, signUpWithEmail } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
 
   async function handleSubmit() {
     if (!email || !password) return;
+    if (isSignUp && !name.trim()) {
+      setError('Introduce tu nombre');
+      return;
+    }
     if (password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres');
       return;
@@ -25,7 +30,7 @@ export default function LoginScreen() {
     setError(null);
     try {
       if (isSignUp) {
-        await signUpWithEmail(email, password);
+        await signUpWithEmail(email, password, name.trim());
       } else {
         await signInWithEmail(email, password);
       }
@@ -50,6 +55,16 @@ export default function LoginScreen() {
         <Animated.View entering={FadeInDown.delay(300).duration(500)} style={s.buttons}>
           <Text style={s.formTitle}>{isSignUp ? 'Crear cuenta' : 'Iniciar sesion'}</Text>
 
+          {isSignUp && (
+            <TextInput
+              style={s.input}
+              placeholder="Tu nombre"
+              placeholderTextColor={colors.textMuted}
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+            />
+          )}
           <TextInput
             style={s.input}
             placeholder="Email"

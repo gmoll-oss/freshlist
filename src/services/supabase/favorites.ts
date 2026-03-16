@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { getCurrentUserId } from './pantry';
+import { getMyFamilyId } from './family';
 import type { MealPlan } from '../../types';
 
 export interface RecipeFavorite {
@@ -29,35 +30,57 @@ function rowToFavorite(row: any): RecipeFavorite {
 }
 
 export async function fetchFavorites(): Promise<RecipeFavorite[]> {
-  const { data, error } = await supabase
+  const familyId = await getMyFamilyId();
+
+  let query = supabase
     .from('recipe_favorites')
     .select('*')
     .order('times_cooked', { ascending: false });
 
+  if (familyId) {
+    query = query.eq('family_id', familyId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map(rowToFavorite);
 }
 
 export async function isFavorite(mealName: string): Promise<boolean> {
   const userId = await getCurrentUserId();
-  const { data } = await supabase
+  const familyId = await getMyFamilyId();
+
+  let query = supabase
     .from('recipe_favorites')
     .select('id')
-    .eq('user_id', userId)
-    .eq('meal_name', mealName)
-    .maybeSingle();
+    .eq('meal_name', mealName);
+
+  if (familyId) {
+    query = query.eq('family_id', familyId);
+  } else {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data } = await query.maybeSingle();
   return !!data;
 }
 
 export async function toggleFavorite(meal: MealPlan): Promise<boolean> {
   const userId = await getCurrentUserId();
+  const familyId = await getMyFamilyId();
 
-  const { data: existing } = await supabase
+  let existQuery = supabase
     .from('recipe_favorites')
     .select('id')
-    .eq('user_id', userId)
-    .eq('meal_name', meal.meal_name)
-    .maybeSingle();
+    .eq('meal_name', meal.meal_name);
+
+  if (familyId) {
+    existQuery = existQuery.eq('family_id', familyId);
+  } else {
+    existQuery = existQuery.eq('user_id', userId);
+  }
+
+  const { data: existing } = await existQuery.maybeSingle();
 
   if (existing) {
     await supabase.from('recipe_favorites').delete().eq('id', existing.id);
@@ -66,6 +89,7 @@ export async function toggleFavorite(meal: MealPlan): Promise<boolean> {
 
   await supabase.from('recipe_favorites').insert({
     user_id: userId,
+    family_id: familyId,
     meal_name: meal.meal_name,
     ingredients: meal.ingredients,
     steps: meal.steps,
@@ -80,13 +104,20 @@ export async function toggleFavorite(meal: MealPlan): Promise<boolean> {
 
 export async function incrementTimesCooked(mealName: string): Promise<void> {
   const userId = await getCurrentUserId();
+  const familyId = await getMyFamilyId();
 
-  const { data } = await supabase
+  let cookQuery = supabase
     .from('recipe_favorites')
     .select('id, times_cooked')
-    .eq('user_id', userId)
-    .eq('meal_name', mealName)
-    .maybeSingle();
+    .eq('meal_name', mealName);
+
+  if (familyId) {
+    cookQuery = cookQuery.eq('family_id', familyId);
+  } else {
+    cookQuery = cookQuery.eq('user_id', userId);
+  }
+
+  const { data } = await cookQuery.maybeSingle();
 
   if (data) {
     await supabase

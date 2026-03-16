@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { getMyFamilyId } from './family';
 import type { PantryItem } from '../../types';
 
 export async function getCurrentUserId(): Promise<string | null> {
@@ -7,11 +8,18 @@ export async function getCurrentUserId(): Promise<string | null> {
 }
 
 export async function fetchPantryItems(): Promise<PantryItem[]> {
-  const { data, error } = await supabase
+  const familyId = await getMyFamilyId();
+
+  let query = supabase
     .from('pantry_items')
     .select('*')
     .order('estimated_expiry', { ascending: true });
 
+  if (familyId) {
+    query = query.eq('family_id', familyId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map((row: any) => ({
     id: row.id,
@@ -111,9 +119,11 @@ export async function autoConsumePantryItems(
 
 export async function insertPantryItems(items: PantryItem[]): Promise<void> {
   const userId = await getCurrentUserId();
+  const familyId = await getMyFamilyId();
 
   const rows = items.map((item) => ({
     user_id: userId,
+    family_id: familyId,
     name: item.name,
     category: item.category,
     quantity: item.quantity,

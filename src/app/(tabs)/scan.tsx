@@ -203,9 +203,13 @@ export default function ScanScreen() {
                 <Text style={s.webUploadTitle}>
                   {mode === 'ticket' ? 'Sube una foto del ticket' : mode === 'fridge' ? 'Sube una foto de tu nevera' : 'Escanea un codigo de barras'}
                 </Text>
-                <TouchableOpacity style={s.webUploadBtn} onPress={handleGallery} disabled={isWorking}>
-                  <Image size={18} color="white" strokeWidth={2} />
-                  <Text style={s.webUploadBtnText}>Elegir foto</Text>
+                <TouchableOpacity style={s.webUploadBtn} onPress={handleCapture} disabled={isWorking}>
+                  <Camera size={18} color="white" strokeWidth={2} />
+                  <Text style={s.webUploadBtnText}>Tomar foto</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.webUploadBtn, { backgroundColor: colors.surface }]} onPress={handleGallery} disabled={isWorking}>
+                  <Image size={18} color={colors.textSec} strokeWidth={2} />
+                  <Text style={[s.webUploadBtnText, { color: colors.textSec }]}>Elegir de galeria</Text>
                 </TouchableOpacity>
                 {mode === 'barcode' && (
                   <View style={s.webBarcodeRow}>

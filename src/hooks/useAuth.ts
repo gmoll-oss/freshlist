@@ -21,7 +21,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>;
   signOut: () => Promise<void>;
   skipAuth: () => void;
 }
@@ -114,8 +114,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   }, []);
 
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  const signUpWithEmail = useCallback(async (email: string, password: string, name?: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: name ? { data: { full_name: name } } : undefined,
+    });
     if (error) throw error;
   }, []);
 

@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { getCurrentUserId } from './pantry';
+import { getMyFamilyId } from './family';
 import type { WeeklySummary } from '../../types';
 
 function getWeekStart(date: Date = new Date()): string {
@@ -51,11 +52,19 @@ export async function generateAndSaveSummary(weekStart: string): Promise<WeeklyS
   if (!userId) throw new Error('No user');
 
   // Gather meal plan data for the week
-  const { data: meals } = await supabase
+  const familyId = await getMyFamilyId();
+  let mealsQuery = supabase
     .from('meal_plans')
     .select('meal_name, cooked')
-    .eq('user_id', userId)
     .eq('week_start', weekStart);
+
+  if (familyId) {
+    mealsQuery = mealsQuery.eq('family_id', familyId);
+  } else {
+    mealsQuery = mealsQuery.eq('user_id', userId);
+  }
+
+  const { data: meals } = await mealsQuery;
 
   const mealsPlanned = meals?.length ?? 0;
   const mealsCooked = meals?.filter((m: any) => m.cooked).length ?? 0;

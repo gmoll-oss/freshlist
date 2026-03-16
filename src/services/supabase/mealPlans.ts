@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { getCurrentUserId } from './pantry';
+import { getMyFamilyId } from './family';
 import type { MealPlan } from '../../types';
 
 function rowToMealPlan(row: any): MealPlan {
@@ -20,21 +21,30 @@ function rowToMealPlan(row: any): MealPlan {
 }
 
 export async function fetchMealPlans(weekStart: string): Promise<MealPlan[]> {
-  const { data, error } = await supabase
+  const familyId = await getMyFamilyId();
+
+  let query = supabase
     .from('meal_plans')
     .select('*')
     .eq('week_start', weekStart)
     .order('created_at', { ascending: true });
 
+  if (familyId) {
+    query = query.eq('family_id', familyId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map(rowToMealPlan);
 }
 
 export async function insertMealPlans(plans: Omit<MealPlan, 'id'>[]): Promise<MealPlan[]> {
   const userId = await getCurrentUserId();
+  const familyId = await getMyFamilyId();
 
   const rows = plans.map((p) => ({
     user_id: userId,
+    family_id: familyId,
     week_start: p.week_start,
     day: p.day,
     meal_type: p.meal_type ?? 'dinner',
@@ -63,11 +73,20 @@ export async function markMealCooked(id: string): Promise<void> {
 
 export async function deleteWeekMealPlans(weekStart: string): Promise<void> {
   const userId = await getCurrentUserId();
-  const { error } = await supabase
+  const familyId = await getMyFamilyId();
+
+  let query = supabase
     .from('meal_plans')
     .delete()
-    .eq('user_id', userId)
     .eq('week_start', weekStart);
+
+  if (familyId) {
+    query = query.eq('family_id', familyId);
+  } else {
+    query = query.eq('user_id', userId);
+  }
+
+  const { error } = await query;
   if (error) throw error;
 }
 
@@ -75,14 +94,19 @@ export async function getPreviousWeekDays(currentWeekStart: string): Promise<str
   const prev = new Date(currentWeekStart);
   prev.setDate(prev.getDate() - 7);
   const prevWeekStart = prev.toISOString().split('T')[0];
+  const familyId = await getMyFamilyId();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('meal_plans')
     .select('day')
     .eq('week_start', prevWeekStart);
 
+  if (familyId) {
+    query = query.eq('family_id', familyId);
+  }
+
+  const { data, error } = await query;
   if (error || !data) return [];
-  // Unique days
   return [...new Set(data.map((r: any) => r.day as string))];
 }
 
@@ -96,14 +120,22 @@ export async function updateMealPlan(id: string, updates: Partial<MealPlan>): Pr
 
 export async function shiftPlanByDays(weekStart: string, days: number): Promise<void> {
   const userId = await getCurrentUserId();
+  const familyId = await getMyFamilyId();
   const ALL_DAYS = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
 
-  const { data, error } = await supabase
+  let shiftQuery = supabase
     .from('meal_plans')
     .select('*')
-    .eq('user_id', userId)
     .eq('week_start', weekStart)
     .eq('cooked', false);
+
+  if (familyId) {
+    shiftQuery = shiftQuery.eq('family_id', familyId);
+  } else {
+    shiftQuery = shiftQuery.eq('user_id', userId);
+  }
+
+  const { data, error } = await shiftQuery;
 
   if (error) throw error;
   if (!data || data.length === 0) return;
@@ -161,14 +193,20 @@ export async function getTodaysMeals(): Promise<MealPlan[]> {
   const dow = today.getDay();
   monday.setDate(today.getDate() - ((dow + 6) % 7));
   const weekStart = monday.toISOString().split('T')[0];
+  const familyId = await getMyFamilyId();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('meal_plans')
     .select('*')
     .eq('week_start', weekStart)
     .eq('day', dayName)
     .order('created_at', { ascending: true });
 
+  if (familyId) {
+    query = query.eq('family_id', familyId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map(rowToMealPlan);
 }
