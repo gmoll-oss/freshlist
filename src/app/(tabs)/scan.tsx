@@ -8,7 +8,6 @@ import { CameraView } from 'expo-camera';
 import Haptics from '../../utils/haptics';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
 import { useScan } from '../../hooks/useScan';
-import { fetchPantryItems } from '../../services/supabase/pantry';
 import { lookupBarcode } from '../../services/barcode/barcodeService';
 
 type ScanMode = 'ticket' | 'fridge' | 'barcode';
@@ -78,43 +77,10 @@ export default function ScanScreen() {
     }
   }, [barcodeProcessing, lastScannedCode, scan, router]);
 
-  /** After capturing a fridge photo, check if user wants to update inventory or add new */
+  /** After capturing a fridge photo, always add new products */
   async function handleFridgeResult(base64: string) {
-    // Check if user has existing pantry items
-    let pantryCount = 0;
-    try {
-      const items = await fetchPantryItems();
-      pantryCount = items.filter((i) => i.status === 'fresh' || i.status === 'expiring').length;
-    } catch {}
-
-    if (pantryCount > 0) {
-      // User has items — ask what they want to do
-      Alert.alert(
-        'Tienes ' + pantryCount + ' productos registrados',
-        'Que quieres hacer con esta foto?',
-        [
-          {
-            text: 'Actualizar inventario',
-            onPress: async () => {
-              const ok = await scan.processRescan(base64);
-              if (ok) router.push('/rescan-results');
-            },
-          },
-          {
-            text: 'Anadir nuevos',
-            onPress: async () => {
-              const result = await scan.processImage(base64, 'fridge');
-              if (result) router.push('/products');
-            },
-          },
-          { text: 'Cancelar', style: 'cancel' },
-        ],
-      );
-    } else {
-      // No items — normal scan
-      const result = await scan.processImage(base64, 'fridge');
-      if (result) router.push('/products');
-    }
+    const result = await scan.processImage(base64, 'fridge');
+    if (result) router.push('/products');
   }
 
   async function handleCapture() {
